@@ -25,6 +25,8 @@
  *             "Coming soon" when there is no full download
  * comingSoon  true keeps the full release marked coming soon. A demo still
  *             shows its own button
+ * aiAssisted  Shows an "AI-assisted" tag. Defaults to true when omitted;
+ *             set false for a project made without AI tools
  *
  * Host large binaries on itch.io or GitHub Releases. GitHub Pages has a
  * 100 MB file limit and is meant for the site itself, not big installers.
@@ -50,6 +52,7 @@ const GAMES = [
       "Portable .exe — no install needed. Windows SmartScreen may show “Windows protected your PC” because it’s from an indie developer. Click More info, then Run anyway.",
     badge: "Demo available",
     comingSoon: true,
+    aiAssisted: true,
   },
   {
     id: "fomx-gang",
@@ -67,6 +70,7 @@ const GAMES = [
     note:
       "Portable .exe — no install needed. Windows SmartScreen may show “Windows protected your PC” because it’s from an indie developer. Click More info, then Run anyway.",
     comingSoon: false,
+    aiAssisted: true,
   },
 ];
 

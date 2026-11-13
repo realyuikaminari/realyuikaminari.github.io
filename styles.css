@@ -620,6 +620,21 @@ a:hover { color: var(--white); }
   line-height: 1;
 }
 
+.ai-tag {
+  display: inline-flex;
+  align-self: flex-start;
+  margin-top: 0.15rem;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--blue-soft);
+  border: 1px solid var(--line);
+  background: rgba(31, 79, 216, 0.12);
+  border-radius: 999px;
+  padding: 0.16rem 0.48rem;
+}
+
 .card-meta {
   display: flex;
   flex-wrap: wrap;
@@ -917,6 +932,25 @@ a:hover { color: var(--white); }
 .spec-value {
   color: var(--white);
   font-weight: 500;
+}
+
+/* -------------------------- AI disclosure -------------------------- */
+
+.ai-note {
+  border-top: 1px solid var(--line);
+  background:
+    linear-gradient(180deg, rgba(31, 79, 216, 0.1), transparent 78%),
+    var(--bg);
+  padding: 2.2rem 0 2.4rem;
+}
+
+.ai-note-inner { max-width: 44rem; }
+
+.ai-note p:last-child {
+  margin: 0.35rem 0 0;
+  color: var(--muted);
+  font-size: 1.02rem;
+  max-width: 40rem;
 }
 
 /* -------------------------- footer -------------------------- */

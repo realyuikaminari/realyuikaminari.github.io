@@ -50,6 +50,7 @@
       : "";
     const versionText = item.versionText || `Ver. ${item.version}`;
     const note = item.note ? `<p class="card-note">${escapeHtml(item.note)}</p>` : "";
+    const aiTag = item.aiAssisted !== false ? `<span class="ai-tag">AI-assisted</span>` : "";
 
     return `
       <article class="card" data-type="${escapeHtml(item.type)}" data-id="${escapeHtml(item.id)}">
@@ -60,6 +61,7 @@
         </div>
         <div class="card-body">
           <h3 class="card-title">${escapeHtml(item.title)}</h3>
+          ${aiTag}
           <p class="card-meta">
             <span>${escapeHtml(item.platform)}</span>
             <span class="dot" aria-hidden="true"></span>
