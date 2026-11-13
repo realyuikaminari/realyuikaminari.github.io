@@ -16,19 +16,39 @@
       .replaceAll('"', "&quot;")
       .replaceAll("'", "&#39;");
 
+  const downloadLink = (href, text, primary) =>
+    `<a class="btn ${primary ? "btn-primary" : "btn-ghost"}" href="${escapeHtml(href)}" rel="noopener noreferrer">${escapeHtml(text)}</a>`;
+
   const cardTemplate = (item) => {
-    const soon = Boolean(item.comingSoon) || !item.download;
+    const demo = item.demo && item.demo.url ? item.demo : null;
+    const fullRelease = Boolean(item.download) && !item.comingSoon;
     const typeLabel = item.type === "app" ? "App" : "Game";
     const media = item.thumbnail
       ? `<img src="${escapeHtml(item.thumbnail)}" alt="" width="640" height="360">`
       : `<div class="card-fallback" aria-hidden="true"></div>`;
-    const label = item.downloadLabel || "Download";
-    const action = soon
-      ? `<button class="btn btn-ghost" type="button" disabled>Coming soon</button>`
-      : `<a class="btn btn-primary" href="${escapeHtml(item.download)}" rel="noopener noreferrer">${escapeHtml(label)}</a>`;
+    const buttons = [];
+    if (fullRelease) {
+      buttons.push(downloadLink(item.download, item.downloadLabel || "Download", true));
+    }
+    if (demo) {
+      buttons.push(downloadLink(demo.url, demo.label || "Demo", !fullRelease));
+    }
+    if (!buttons.length) {
+      buttons.push(`<button class="btn btn-ghost" type="button" disabled>Coming soon</button>`);
+    }
+    const status =
+      item.badge ||
+      (item.comingSoon && demo
+        ? "Demo available"
+        : item.comingSoon || !fullRelease
+          ? "Coming soon"
+          : "");
+    const statusTitle =
+      item.comingSoon && demo ? ` title="Full game coming soon"` : "";
     const size = item.size
       ? `<span class="dot" aria-hidden="true"></span><span>${escapeHtml(item.size)}</span>`
       : "";
+    const versionText = item.versionText || `Ver. ${item.version}`;
     const note = item.note ? `<p class="card-note">${escapeHtml(item.note)}</p>` : "";
 
     return `
@@ -36,19 +56,19 @@
         <div class="card-media">
           ${media}
           <span class="pill pill-type">${escapeHtml(typeLabel)}</span>
-          ${soon ? `<span class="pill pill-soon">Coming soon</span>` : ""}
+          ${status ? `<span class="pill pill-soon"${statusTitle}>${escapeHtml(status)}</span>` : ""}
         </div>
         <div class="card-body">
           <h3 class="card-title">${escapeHtml(item.title)}</h3>
           <p class="card-meta">
             <span>${escapeHtml(item.platform)}</span>
             <span class="dot" aria-hidden="true"></span>
-            <span>Ver. ${escapeHtml(item.version)}</span>
+            <span>${escapeHtml(versionText)}</span>
             ${size}
           </p>
           <p class="card-desc">${escapeHtml(item.description)}</p>
           ${note}
-          <div class="card-actions">${action}</div>
+          <div class="card-actions">${buttons.join("")}</div>
         </div>
       </article>
     `;

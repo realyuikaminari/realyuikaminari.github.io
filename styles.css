@@ -599,7 +599,7 @@ a:hover { color: var(--white); }
 }
 
 .pill-type { left: 0.7rem; }
-.pill-soon { right: 0.7rem; color: var(--white); }
+.pill-soon { top: auto; right: 0.7rem; bottom: 0.7rem; color: var(--white); }
 
 .card-body {
   padding: 1.05rem 1.1rem 1.2rem;
@@ -653,7 +653,12 @@ a:hover { color: var(--white); }
   line-height: 1.45;
 }
 
-.card-actions { margin-top: auto; }
+.card-actions {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
 .card-actions .btn { width: 100%; }
 
 .empty {
