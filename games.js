@@ -22,18 +22,6 @@
  */
 const GAMES = [
   {
-    id: "night-pass",
-    title: "Night Pass",
-    type: "game",
-    platform: "Windows / Linux",
-    version: "TBA",
-    description:
-      "A midnight downhill run through tight mountain switchbacks. Keep the lights on, trust the tires, and don’t look down.",
-    thumbnail: "assets/thumb-night-pass.webp",
-    download: null,
-    comingSoon: true,
-  },
-  {
     id: "fomx-gang",
     title: "Fomx Gang Rides Again",
     type: "game",
@@ -42,18 +30,6 @@ const GAMES = [
     description:
       "An 1890s outlaw romp. Grab the loot, outrun the law, and don’t leave the pack behind. Coming soon to the Garage.",
     thumbnail: "assets/thumb-fomx-gang.webp",
-    download: null,
-    comingSoon: true,
-  },
-  {
-    id: "garage-kit",
-    title: "Garage Kit",
-    type: "app",
-    platform: "Android / iOS",
-    version: "TBA",
-    description:
-      "A little companion from the Garage — notes, builds, and late-night doodles, packed into a pocket-sized kit.",
-    thumbnail: "assets/thumb-garage-kit.webp",
     download: null,
     comingSoon: true,
   },

@@ -64,6 +64,6 @@ The hero, About portraits, and Garage car are original illustrations of Yui and 
 
 - `yui-hero.webp` — full-body hero (transparent background)
 - `yui-bust-smile.webp` / `yui-bust-wink.webp` — About portraits
-- `car-touge.webp` — Garage night-pass painting
+- `car-touge.webp` — Garage mountain-pass painting
 
 Keep new images as WebP or JPEG under about 400 KB. The official husky patch (`husky-patch.png`, `emblem-husky.png`) still appears in the header, dossier, and favicon.

@@ -51,7 +51,11 @@
     if (!grid) return;
     const visible = games.filter((item) => filter === "all" || item.type === filter);
     if (!visible.length) {
-      grid.innerHTML = `<p class="empty">Nothing in this bay yet. Check back after the next night run.</p>`;
+      const message =
+        filter === "app"
+          ? "More coming soon."
+          : "Nothing in this bay yet. Check back after the next night run.";
+      grid.innerHTML = `<p class="empty">${message}</p>`;
       return;
     }
     grid.innerHTML = visible.map(cardTemplate).join("");
