@@ -646,6 +646,13 @@ a:hover { color: var(--white); }
   flex: 1;
 }
 
+.card-note {
+  margin: 0 0 0.85rem;
+  color: var(--steel);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
 .card-actions { margin-top: auto; }
 .card-actions .btn { width: 100%; }
 

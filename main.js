@@ -22,9 +22,14 @@
     const media = item.thumbnail
       ? `<img src="${escapeHtml(item.thumbnail)}" alt="" width="640" height="360">`
       : `<div class="card-fallback" aria-hidden="true"></div>`;
+    const label = item.downloadLabel || "Download";
     const action = soon
       ? `<button class="btn btn-ghost" type="button" disabled>Coming soon</button>`
-      : `<a class="btn btn-primary" href="${escapeHtml(item.download)}" rel="noopener noreferrer">Download</a>`;
+      : `<a class="btn btn-primary" href="${escapeHtml(item.download)}" rel="noopener noreferrer">${escapeHtml(label)}</a>`;
+    const size = item.size
+      ? `<span class="dot" aria-hidden="true"></span><span>${escapeHtml(item.size)}</span>`
+      : "";
+    const note = item.note ? `<p class="card-note">${escapeHtml(item.note)}</p>` : "";
 
     return `
       <article class="card" data-type="${escapeHtml(item.type)}" data-id="${escapeHtml(item.id)}">
@@ -39,8 +44,10 @@
             <span>${escapeHtml(item.platform)}</span>
             <span class="dot" aria-hidden="true"></span>
             <span>Ver. ${escapeHtml(item.version)}</span>
+            ${size}
           </p>
           <p class="card-desc">${escapeHtml(item.description)}</p>
+          ${note}
           <div class="card-actions">${action}</div>
         </div>
       </article>
