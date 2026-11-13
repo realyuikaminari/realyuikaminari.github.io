@@ -1,0 +1,105 @@
+(() => {
+  const games = window.GAMES || [];
+  const grid = document.querySelector("#game-grid");
+  const filters = document.querySelectorAll("[data-filter]");
+  const nav = document.querySelector(".nav-links");
+  const toggle = document.querySelector(".nav-toggle");
+  const year = document.querySelector("#year");
+
+  if (year) year.textContent = String(new Date().getFullYear());
+
+  const escapeHtml = (value) =>
+    String(value ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#39;");
+
+  const cardTemplate = (item) => {
+    const soon = Boolean(item.comingSoon) || !item.download;
+    const typeLabel = item.type === "app" ? "App" : "Game";
+    const media = item.thumbnail
+      ? `<img src="${escapeHtml(item.thumbnail)}" alt="" width="640" height="360">`
+      : `<div class="card-fallback" aria-hidden="true"></div>`;
+    const action = soon
+      ? `<button class="btn btn-ghost" type="button" disabled>Coming soon</button>`
+      : `<a class="btn btn-primary" href="${escapeHtml(item.download)}" rel="noopener noreferrer">Download</a>`;
+
+    return `
+      <article class="card" data-type="${escapeHtml(item.type)}" data-id="${escapeHtml(item.id)}">
+        <div class="card-media">
+          ${media}
+          <span class="pill pill-type">${escapeHtml(typeLabel)}</span>
+          ${soon ? `<span class="pill pill-soon">Coming soon</span>` : ""}
+        </div>
+        <div class="card-body">
+          <h3 class="card-title">${escapeHtml(item.title)}</h3>
+          <p class="card-meta">
+            <span>${escapeHtml(item.platform)}</span>
+            <span class="dot" aria-hidden="true"></span>
+            <span>Ver. ${escapeHtml(item.version)}</span>
+          </p>
+          <p class="card-desc">${escapeHtml(item.description)}</p>
+          <div class="card-actions">${action}</div>
+        </div>
+      </article>
+    `;
+  };
+
+  const render = (filter = "all") => {
+    if (!grid) return;
+    const visible = games.filter((item) => filter === "all" || item.type === filter);
+    if (!visible.length) {
+      grid.innerHTML = `<p class="empty">Nothing in this bay yet. Check back after the next night run.</p>`;
+      return;
+    }
+    grid.innerHTML = visible.map(cardTemplate).join("");
+  };
+
+  filters.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      filters.forEach((b) => {
+        b.classList.toggle("is-active", b === btn);
+        b.setAttribute("aria-pressed", b === btn ? "true" : "false");
+      });
+      render(btn.dataset.filter);
+    });
+  });
+
+  render("all");
+
+  const setNav = (open) => {
+    if (!nav || !toggle) return;
+    nav.classList.toggle("is-open", open);
+    toggle.setAttribute("aria-expanded", open ? "true" : "false");
+    document.body.classList.toggle("nav-open", open);
+  };
+
+  toggle?.addEventListener("click", () => {
+    setNav(!nav.classList.contains("is-open"));
+  });
+
+  nav?.querySelectorAll("a").forEach((link) => {
+    link.addEventListener("click", () => setNav(false));
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") setNav(false);
+  });
+
+  // Elevate the header once you leave the hero.
+  const header = document.querySelector(".site-header");
+  if (header && "IntersectionObserver" in window) {
+    const sentinel = document.querySelector(".hero");
+    if (sentinel) {
+      const io = new IntersectionObserver(
+        ([entry]) => header.classList.toggle("is-stuck", !entry.isIntersecting),
+        { threshold: 0.08 }
+      );
+      io.observe(sentinel);
+    }
+  } else {
+    header?.classList.add("is-stuck");
+  }
+})();

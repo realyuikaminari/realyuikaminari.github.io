@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Yui Kaminari's Garage — games &amp; apps</title>
+  <meta name="description" content="Yui Kaminari's Garage is a night-run hub for indie games and apps. Good vibes, loyal heart.">
+  <meta name="theme-color" content="#080a10">
+  <meta property="og:title" content="Yui Kaminari's Garage">
+  <meta property="og:description" content="Games and apps from a Siberian-husky girl who lives for night passes. Good vibes, loyal heart.">
+  <meta property="og:image" content="assets/og-image.jpg">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Yui Kaminari's Garage">
+  <meta name="twitter:description" content="Games and apps from Yui Kaminari's Garage. Good vibes, loyal heart.">
+  <meta name="twitter:image" content="assets/og-image.jpg">
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <link rel="manifest" href="site.webmanifest">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+JP:wght@400;500;700;900&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="#top" aria-label="Yui Kaminari's Garage home">
+        <img class="brand-mark" src="assets/husky-patch.png" width="40" height="40" alt="">
+        <span class="brand-text">
+          <span class="brand-name">Yui Kaminari's</span>
+          <span class="brand-sub">Garage</span>
+        </span>
+      </a>
+
+      <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav">
+        <span class="sr-only">Menu</span>
+        <span class="nav-toggle-bar"></span>
+        <span class="nav-toggle-bar"></span>
+        <span class="nav-toggle-bar"></span>
+      </button>
+
+      <nav id="site-nav" class="nav-links" aria-label="Primary">
+        <a href="#downloads">Downloads</a>
+        <a href="#about">About Yui</a>
+        <a href="#garage">Garage</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero" id="top">
+      <div class="hero-bg" aria-hidden="true">
+        <div class="hero-stars"></div>
+        <div class="hero-glow"></div>
+        <img class="hero-skyline" src="assets/hero-skyline.svg" alt="">
+        <div class="hero-grain"></div>
+      </div>
+
+      <div class="hero-inner">
+        <div class="hero-copy">
+          <p class="eyebrow">
+            <span class="barcode" aria-hidden="true"></span>
+            カミナリ・ユイ  ·  NIGHT RUN  ·  ハスキー
+          </p>
+          <h1>
+            <span class="hero-kicker">Yui Kaminari's</span>
+            <span class="hero-title">Garage</span>
+          </h1>
+          <p class="hero-tag">Good vibes, loyal heart.</p>
+          <p class="hero-lead">
+            A late-night pit for indie games and apps, built by a Siberian-husky girl who lives for mountain-pass runs and electric-blue streetwear.
+          </p>
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="#downloads">Browse downloads</a>
+            <a class="btn btn-ghost" href="#about">Meet Yui</a>
+          </div>
+        </div>
+
+        <aside class="hero-yui">
+          <img src="assets/yui-hero.webp" width="430" height="1150" alt="Yui Kaminari, a Siberian-husky girl in a zipped black techwear jacket with electric-blue straps, beanie, and a fluffy tail, hands in her pockets.">
+        </aside>
+      </div>
+
+      <a class="scroll-hint" href="#downloads">
+        <span>Take the pass</span>
+        <span class="scroll-chevron" aria-hidden="true"></span>
+      </a>
+    </section>
+
+    <section class="section" id="downloads">
+      <div class="section-inner">
+        <header class="section-head">
+          <p class="eyebrow"><span class="idx">01</span> ダウンロード  ·  Downloads</p>
+          <h2>Games &amp; Apps</h2>
+          <p class="section-lead">
+            Everything that rolls out of the Garage lands here. Builds marked
+            <strong>Coming soon</strong> are still on the workbench — check back after the next night run.
+          </p>
+        </header>
+
+        <div class="filter-bar" role="group" aria-label="Filter downloads">
+          <button class="chip is-active" type="button" data-filter="all" aria-pressed="true">All</button>
+          <button class="chip" type="button" data-filter="game" aria-pressed="false">Games</button>
+          <button class="chip" type="button" data-filter="app" aria-pressed="false">Apps</button>
+        </div>
+
+        <div id="game-grid" class="game-grid" aria-live="polite"></div>
+        <noscript>
+          <p class="empty">Turn on JavaScript to load the downloads bay. The catalog lives in <code>games.js</code>.</p>
+        </noscript>
+      </div>
+    </section>
+
+    <section class="section section-alt" id="about">
+      <div class="section-inner about-grid">
+        <header class="section-head">
+          <p class="eyebrow"><span class="idx">02</span> プロフィール  ·  About Yui</p>
+          <h2>The one behind the wheel</h2>
+          <p class="section-lead">
+            Yui Kaminari is a Siberian-husky girl with a playful streak, a loyal heart, and a closet full of black-and-blue techwear. She is energetic, a little mischievous, and happiest when the road starts to climb.
+          </p>
+        </header>
+
+        <div class="dossier">
+          <div class="dossier-top">
+            <img class="dossier-patch" src="assets/husky-patch.png" width="96" height="96" alt="Yui’s husky patch">
+            <div>
+              <p class="dossier-kana">カミナリ・ユイ</p>
+              <h3>Yui Kaminari</h3>
+              <p class="dossier-tag">Good vibes, loyal heart.</p>
+            </div>
+          </div>
+
+          <dl class="specs">
+            <div>
+              <dt>Species</dt>
+              <dd>Siberian Husky</dd>
+            </div>
+            <div>
+              <dt>Height</dt>
+              <dd>166 cm</dd>
+            </div>
+            <div>
+              <dt>Style</dt>
+              <dd>Anime techwear  ·  night colors</dd>
+            </div>
+            <div>
+              <dt>Loves</dt>
+              <dd>Mountain-pass nights</dd>
+            </div>
+          </dl>
+
+          <ul class="traits">
+            <li>Playful</li>
+            <li>Loyal</li>
+            <li>Energetic</li>
+            <li>A little mischievous</li>
+          </ul>
+        </div>
+
+        <div class="expressions" aria-label="Yui’s expressions">
+          <figure class="expr">
+            <img src="assets/yui-bust-smile.webp" width="714" height="800" alt="Yui smiling, zipped techwear jacket with a husky patch and the katakana ハスキー.">
+            <figcaption>Smile</figcaption>
+          </figure>
+          <figure class="expr">
+            <img src="assets/yui-bust-wink.webp" width="715" height="800" alt="Yui winking and laughing, same streetwear look.">
+            <figcaption>Wink</figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="garage">
+      <div class="section-inner">
+        <header class="section-head">
+          <p class="eyebrow"><span class="idx">03</span> ガレージ  ·  峠  ·  The Garage</p>
+          <h2>Built for the night pass</h2>
+          <p class="section-lead">
+            When the city lights fall away, Yui points her coupe up the mountain. Tight corners, cold air, a line of blue in the dark. No badges, no noise — just the pass and a car that knows the way home.
+          </p>
+        </header>
+
+        <div class="garage-stage">
+          <div class="garage-stage-bg" aria-hidden="true"></div>
+          <figure class="car-figure">
+            <img src="assets/car-touge.webp" width="1280" height="720" alt="Yui’s metallic electric-blue and black two-door coupe parked on a wet night mountain pass, headlights on, city lights in the valley below. No manufacturer marks.">
+            <figcaption>Midnight blue over charcoal  ·  mountain-pass setup  ·  lights on</figcaption>
+          </figure>
+        </div>
+
+        <ul class="garage-specs">
+          <li>
+            <span class="spec-label">Layout</span>
+            <span class="spec-value">Front-engine coupe</span>
+          </li>
+          <li>
+            <span class="spec-label">Finish</span>
+            <span class="spec-value">Midnight blue / charcoal</span>
+          </li>
+          <li>
+            <span class="spec-label">Terrain</span>
+            <span class="spec-value">Night mountain passes</span>
+          </li>
+          <li>
+            <span class="spec-label">Mood</span>
+            <span class="spec-value">Quiet, low, and loyal</span>
+          </li>
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <a class="brand brand-footer" href="#top">
+        <img class="brand-mark" src="assets/husky-patch.png" width="36" height="36" alt="">
+        <span class="brand-text">
+          <span class="brand-name">Yui Kaminari's</span>
+          <span class="brand-sub">Garage</span>
+        </span>
+      </a>
+      <p class="footer-note">
+        Independent games and apps  ·  Original character and art  ·
+        <span id="year">2026</span>
+        <br>
+        Good vibes, loyal heart.
+      </p>
+      <p class="footer-meta">
+        <span class="barcode barcode-light" aria-hidden="true"></span>
+        ハスキー  ·  カミナリガレージ
+      </p>
+    </div>
+  </footer>
+
+  <script src="games.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>

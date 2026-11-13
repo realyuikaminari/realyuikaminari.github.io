@@ -1,0 +1,184 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 420" role="img" aria-labelledby="carTitle carDesc">
+  <title id="carTitle">Yui’s midnight coupe</title>
+  <desc id="carDesc">A low, two-tone blue and black two-door coupe on wet asphalt, headlights cutting through the night. No manufacturer marks.</desc>
+  <defs>
+    <linearGradient id="asphalt" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0c1018"/>
+      <stop offset="1" stop-color="#07090e"/>
+    </linearGradient>
+    <linearGradient id="bodyBlue" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3a6dff"/>
+      <stop offset="0.22" stop-color="#1f4fd8"/>
+      <stop offset="0.55" stop-color="#163aa8"/>
+      <stop offset="1" stop-color="#0c1e62"/>
+    </linearGradient>
+    <linearGradient id="bodyHi" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#9ec0ff" stop-opacity=".85"/>
+      <stop offset="0.35" stop-color="#4d7cff" stop-opacity=".15"/>
+      <stop offset="1" stop-color="#1f4fd8" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="lowerBlk" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2a2d36"/>
+      <stop offset="1" stop-color="#0a0b10"/>
+    </linearGradient>
+    <linearGradient id="glass" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0" stop-color="#d8e8ff" stop-opacity=".35"/>
+      <stop offset="0.4" stop-color="#1a2a55" stop-opacity=".92"/>
+      <stop offset="1" stop-color="#0a1228"/>
+    </linearGradient>
+    <linearGradient id="rim" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#e8edf5"/>
+      <stop offset="0.45" stop-color="#8b93a3"/>
+      <stop offset="1" stop-color="#2c3038"/>
+    </linearGradient>
+    <radialGradient id="headGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#eaf2ff" stop-opacity=".95"/>
+      <stop offset="0.35" stop-color="#7aa4ff" stop-opacity=".45"/>
+      <stop offset="1" stop-color="#1f4fd8" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="wet" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1f4fd8" stop-opacity=".18"/>
+      <stop offset="1" stop-color="#1f4fd8" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="softGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="10" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="blur8"><feGaussianBlur stdDeviation="8"/></filter>
+  </defs>
+
+  <!-- wet road -->
+  <rect x="0" y="300" width="1000" height="120" fill="url(#asphalt)"/>
+  <ellipse cx="500" cy="338" rx="430" ry="22" fill="#000" opacity=".55" filter="url(#blur8)"/>
+  <path d="M80 338 Q500 310 920 338" stroke="#1f4fd8" stroke-width="1.2" opacity=".25" fill="none"/>
+
+  <!-- headlight bloom (in front of the nose, car faces right) -->
+  <ellipse cx="910" cy="248" rx="120" ry="46" fill="url(#headGlow)"/>
+  <ellipse cx="930" cy="248" rx="70" ry="22" fill="#eef4ff" opacity=".55" filter="url(#softGlow)"/>
+
+  <!-- reflection (simplified, faded) -->
+  <g transform="translate(0,676) scale(1,-1)" opacity=".1">
+    <path d="M130 268
+             C120 268 112 250 118 236
+             L160 214 L390 200 L500 112 L710 118 L800 200
+             L895 200 L925 188 L938 200 L910 268
+             C900 292 860 298 820 292
+             C800 250 740 248 720 292
+             L300 292
+             C280 248 220 248 200 292
+             C160 300 140 292 130 268 Z" fill="#1f4fd8"/>
+  </g>
+
+  <!-- wheels group (behind arches slightly, drawn first) -->
+  <g id="wheel" transform="translate(250,300)">
+    <circle r="58" fill="#0a0a0c"/>
+    <circle r="54" fill="#16181e" stroke="#3a3d46" stroke-width="3"/>
+    <circle r="36" fill="url(#rim)" stroke="#c5cad3" stroke-width="1.5"/>
+    <g fill="#1a1c22">
+      <polygon points="0,0 8,-32 -8,-32"/>
+      <polygon points="0,0 30,-12 26,-28" transform="rotate(72)"/>
+      <polygon points="0,0 8,-32 -8,-32" transform="rotate(72)"/>
+      <polygon points="0,0 8,-32 -8,-32" transform="rotate(144)"/>
+      <polygon points="0,0 8,-32 -8,-32" transform="rotate(216)"/>
+      <polygon points="0,0 8,-32 -8,-32" transform="rotate(288)"/>
+    </g>
+    <circle r="12" fill="#0e1016" stroke="#1f4fd8" stroke-width="2"/>
+    <circle r="4" fill="#8aa4d8"/>
+  </g>
+  <use href="#wheel" transform="translate(470,0)"/>
+
+  <!-- body -->
+  <path d="M128 270
+           C118 270 112 252 120 238
+           L155 216
+           C210 208 300 204 392 200
+           L498 114
+           C530 104 640 104 708 118
+           L798 202
+           L888 202
+           C900 202 910 194 918 190
+           L936 202
+           L918 222
+           L908 268
+           C900 290 862 300 820 294
+           C805 255 746 250 722 294
+           L300 294
+           C284 252 226 250 202 294
+           C164 302 140 294 128 270 Z"
+        fill="url(#bodyBlue)" stroke="#0a1638" stroke-width="1.2"/>
+
+  <!-- lower two-tone -->
+  <path d="M126 268
+           C160 262 210 258 300 256
+           L720 256
+           C780 256 860 260 908 268
+           L908 272
+           C896 292 860 298 820 292
+           C805 255 746 250 722 292
+           L300 292
+           C284 252 226 250 202 292
+           C166 300 142 292 128 270 Z"
+        fill="url(#lowerBlk)"/>
+
+  <!-- electric pinstripe -->
+  <path d="M158 218 C260 208 390 202 500 202 C640 202 790 204 890 208"
+        stroke="#7aa4ff" stroke-width="2.2" fill="none" opacity=".9"/>
+  <path d="M158 222 C260 212 390 206 500 206 C640 206 790 208 888 212"
+        stroke="#d4e2ff" stroke-width="0.7" fill="none" opacity=".55"/>
+
+  <!-- hood highlight -->
+  <path d="M170 220 C260 212 340 208 392 204 L392 216 C330 218 250 224 175 230 Z"
+        fill="url(#bodyHi)"/>
+
+  <!-- roof highlight -->
+  <path d="M510 118 C580 112 660 114 700 124 L690 138 C640 128 560 126 520 132 Z"
+        fill="#c8dcff" opacity=".28"/>
+
+  <!-- greenhouse / glass -->
+  <path d="M404 202 L500 120 L620 120 L616 202 Z" fill="url(#glass)" stroke="#8aa6d8" stroke-width="1"/>
+  <path d="M632 122 L704 126 L786 202 L628 202 Z" fill="url(#glass)" stroke="#8aa6d8" stroke-width="1"/>
+  <!-- pillar -->
+  <path d="M616 120 L632 122 L628 202 L616 202 Z" fill="#0c1018"/>
+  <!-- window gleam -->
+  <path d="M420 170 L500 128 L515 128 L430 176 Z" fill="#eef5ff" opacity=".28"/>
+  <path d="M650 150 L700 136 L708 148 L656 164 Z" fill="#eef5ff" opacity=".18"/>
+
+  <!-- door line + handle -->
+  <path d="M500 204 L500 288" stroke="#0a0c12" stroke-width="1.2" opacity=".55"/>
+  <rect x="548" y="230" width="28" height="6" rx="2" fill="#1a1c24" stroke="#7aa4ff" stroke-width="0.6"/>
+
+  <!-- side mirror -->
+  <path d="M400 200 L372 194 L368 208 L396 214 Z" fill="#12141a" stroke="#7aa4ff" stroke-width="0.7"/>
+  <path d="M372 196 L366 194 L364 202 L370 204 Z" fill="#9ec0ff" opacity=".5"/>
+
+  <!-- front bumper / lip -->
+  <path d="M908 268 C930 268 942 260 944 250 L948 248 L938 270 C928 286 900 292 880 288 Z" fill="#0c0d12"/>
+  <!-- headlights cluster (quad hint, no badge) -->
+  <g filter="url(#softGlow)">
+    <rect x="900" y="226" width="22" height="10" rx="2" fill="#eef4ff"/>
+    <rect x="900" y="238" width="20" height="9" rx="2" fill="#cfe0ff"/>
+  </g>
+  <rect x="898" y="224" width="26" height="26" rx="3" fill="none" stroke="#9ec0ff" stroke-width="1" opacity=".6"/>
+
+  <!-- tail lights -->
+  <rect x="128" y="228" width="18" height="10" rx="2" fill="#ff3b4a"/>
+  <rect x="128" y="240" width="16" height="6" rx="1.5" fill="#ff7a3a"/>
+  <rect x="128" y="228" width="18" height="18" rx="2" fill="none" stroke="#ff8a94" stroke-width="0.6" opacity=".7"/>
+
+  <!-- rear lip spoiler -->
+  <path d="M888 200 L926 186 L944 188 L936 202 L888 204 Z" fill="#12141c" stroke="#1f4fd8" stroke-width="0.8"/>
+
+  <!-- exhaust -->
+  <rect x="118" y="276" width="16" height="7" rx="2" fill="#9aa0aa"/>
+  <rect x="118" y="276" width="8" height="7" rx="2" fill="#2a2d33"/>
+
+  <!-- antenna -->
+  <path d="M720 118 L728 62" stroke="#8b93a3" stroke-width="1.4"/>
+  <circle cx="728" cy="60" r="2.2" fill="#c5cad3"/>
+
+  <!-- arch lips (over wheels) -->
+  <path d="M192 294 C220 236 284 236 310 294" fill="none" stroke="#0a0c12" stroke-width="7" stroke-linecap="round"/>
+  <path d="M192 294 C220 236 284 236 310 294" fill="none" stroke="#2a2e38" stroke-width="2" stroke-linecap="round"/>
+  <path d="M662 294 C690 236 754 236 780 294" fill="none" stroke="#0a0c12" stroke-width="7" stroke-linecap="round"/>
+  <path d="M662 294 C690 236 754 236 780 294" fill="none" stroke="#2a2e38" stroke-width="2" stroke-linecap="round"/>
+</svg>
