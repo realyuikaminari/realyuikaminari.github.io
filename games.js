@@ -22,6 +22,18 @@
  */
 const GAMES = [
   {
+    id: "mecha-savior",
+    title: "Mecha Savior",
+    type: "game",
+    platform: "TBA",
+    version: "TBA",
+    description:
+      "A horror visual novel with mechs. Level up your pilots RPG-style and survive turn-based mech battles. Coming soon.",
+    thumbnail: "assets/thumb-mecha-savior.webp",
+    download: null,
+    comingSoon: true,
+  },
+  {
     id: "fomx-gang",
     title: "Fomx Gang Rides Again",
     type: "game",
