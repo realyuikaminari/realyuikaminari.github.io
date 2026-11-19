@@ -33,7 +33,7 @@ Then open http://localhost:8080
 
 Set `comingSoon: true` and `download: null` to show a disabled **Coming soon** button instead of a download link. The grid on the homepage is rendered from this array, so you do not need to edit the card markup in `index.html`.
 
-GitHub Pages caches static files for about 10 minutes (`Cache-Control: max-age=600`). `index.html` loads `games.js?v=15`, `main.js?v=15`, `styles.css?v=15`, and `drift.js?v=15`. `404.html` loads `styles.css?v=15`. Bump that `v` number whenever `games.js` or the styles change so browsers fetch the new file instead of the cached one.
+GitHub Pages caches static files for about 10 minutes (`Cache-Control: max-age=600`). `index.html` loads `games.js?v=16`, `main.js?v=16`, `styles.css?v=16`, and `drift.js?v=16`. `404.html` loads `styles.css?v=16`. Bump that `v` number whenever `games.js` or the styles change so browsers fetch the new file instead of the cached one.
 
 ## Host the download files
 

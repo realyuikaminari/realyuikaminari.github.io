@@ -1,6 +1,8 @@
+import * as THREE from "./vendor/three.module.min.js";
+
 /**
  * Night-run drift, chase view.
- * Pseudo-3D road, original canvas art, synthesized Web Audio. No libraries.
+ * Pseudo-3D road plus a Three.js coupe on a transparent canvas.
  * Keys are handled only while the game is focused.
  */
 (() => {
@@ -418,6 +420,7 @@
     const rect = play.getBoundingClientRect();
     viewW = Math.max(320, rect.width);
     viewH = Math.max(180, rect.height);
+    resizeWebGL();
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     canvas.width = Math.round(viewW * dpr);
     canvas.height = Math.round(viewH * dpr);
@@ -582,243 +585,236 @@
     drawCar();
   }
 
-  const CAR_EYE = [0, 0.92, -3.35];
-  const CAR_LIGHT = normalizeVec([-0.25, 0.86, -0.42]);
-  const carFaces = [];
-  const wheelLocal = [];
+  let webgl = null;
+  let visualYaw = 0;
+  let visualPitch = 0;
+  let lastDt = 0.016;
 
-  function vsub(a, b) { return [a[0] - b[0], a[1] - b[1], a[2] - b[2]]; }
-  function vdot(a, b) { return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]; }
-  function vlen(a) { return Math.hypot(a[0], a[1], a[2]) || 1; }
-  function normalizeVec(a) { const l = vlen(a); return [a[0] / l, a[1] / l, a[2] / l]; }
-  function faceNormal(pts) {
-    const a = vsub(pts[1], pts[0]);
-    const b = vsub(pts[2], pts[0]);
-    return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
-  }
-  function centroid(pts) {
-    let x = 0, y = 0, z = 0;
-    pts.forEach((p) => { x += p[0]; y += p[1]; z += p[2]; });
-    const n = pts.length;
-    return [x / n, y / n, z / n];
-  }
-
-  function addFace(list, pts, color, extra) {
-    const n = faceNormal(pts);
-    const c = centroid(pts);
-    const ref = extra && extra.out ? extra.out : c;
-    const ordered = vdot(n, vsub(c, ref)) < 0 ? pts.slice().reverse() : pts.slice();
-    list.push(Object.assign({ pts: ordered, color }, extra || {}));
-  }
-
-  function addBox(list, min, max, color, extra) {
-    const [x0, y0, z0] = min;
-    const [x1, y1, z1] = max;
-    const v = [
-      [x0, y0, z0], [x1, y0, z0], [x1, y1, z0], [x0, y1, z0],
-      [x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1],
-    ];
-    const center = [(x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2];
-    [[0, 3, 2, 1], [4, 5, 6, 7], [0, 1, 5, 4], [3, 7, 6, 2], [0, 4, 7, 3], [1, 2, 6, 5]]
-      .forEach((ids) => addFace(list, ids.map((i) => v[i]), color, Object.assign({ out: center }, extra)));
-  }
-
-  function addWheel(list, radius, width, sides) {
-    const h = width / 2;
-    const left = [];
-    const right = [];
-    for (let i = 0; i < sides; i += 1) {
-      const a = (i / sides) * Math.PI * 2;
-      const y = Math.cos(a) * radius;
-      const z = Math.sin(a) * radius;
-      left.push([-h, y, z]);
-      right.push([h, y, z]);
+  function initWebGL() {
+    const glCanvas = document.createElement("canvas");
+    glCanvas.className = "drift-webgl";
+    glCanvas.setAttribute("aria-hidden", "true");
+    const parent = canvas.parentElement;
+    parent.insertBefore(glCanvas, parent.querySelector(".drift-hud") || null);
+    let renderer;
+    try {
+      renderer = new THREE.WebGLRenderer({
+        canvas: glCanvas,
+        alpha: true,
+        antialias: true,
+        premultipliedAlpha: false,
+        powerPreference: "high-performance",
+      });
+    } catch (err) {
+      glCanvas.remove();
+      return null;
     }
-    for (let i = 0; i < sides; i += 1) {
-      const j = (i + 1) % sides;
-      addFace(list, [left[i], right[i], right[j], left[j]], [18, 20, 26], { out: [0, 0, 0] });
+    if (!renderer.getContext()) {
+      glCanvas.remove();
+      return null;
     }
-    addFace(list, left.slice().reverse(), [58, 64, 74], { out: [0, 0, 0], rim: true });
-    addFace(list, right.slice(), [58, 64, 74], { out: [0, 0, 0], rim: true });
-  }
+    renderer.setClearColor(0x000000, 0);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.15;
 
-  const BODY = [31, 79, 216];
-  const BLACK = [12, 14, 20];
-  const BUMP = [22, 26, 34];
-  const GLASS = [28, 42, 64];
-  addBox(carFaces, [-0.50, 0.22, -0.98], [0.50, 0.48, 0.78], BODY);
-  addBox(carFaces, [-0.40, 0.20, 0.72], [0.40, 0.40, 1.08], BODY);
-  addBox(carFaces, [-0.50, 0.16, -1.14], [0.50, 0.34, -0.92], BUMP);
-  addBox(carFaces, [-0.32, 0.08, -1.08], [0.32, 0.18, -0.72], BLACK);
-  addBox(carFaces, [-0.46, 0.42, -0.98], [0.46, 0.52, -0.28], BODY);
-  addBox(carFaces, [-0.34, 0.48, -0.42], [0.34, 0.66, 0.40], BLACK);
-  addBox(carFaces, [-0.28, 0.74, -0.18], [0.28, 0.82, 0.30], BLACK);
-  addBox(carFaces, [-0.36, 0.48, -0.46], [-0.26, 0.76, -0.16], BLACK);
-  addBox(carFaces, [0.26, 0.48, -0.46], [0.36, 0.76, -0.16], BLACK);
-  addBox(carFaces, [-0.48, 0.78, -1.05], [0.48, 0.86, -0.78], BLACK);
-  addBox(carFaces, [-0.30, 0.52, -1.00], [-0.22, 0.80, -0.88], BLACK);
-  addBox(carFaces, [0.22, 0.52, -1.00], [0.30, 0.80, -0.88], BLACK);
-  [[-0.52, -0.64], [0.52, -0.64], [-0.50, 0.64], [0.50, 0.64]].forEach(([x, z]) => {
-    addBox(carFaces, [x - 0.14, 0.30, z - 0.20], [x + 0.14, 0.46, z + 0.20], BODY);
-  });
-  addFace(carFaces, [
-    [-0.26, 0.52, -0.40], [0.26, 0.52, -0.40], [0.16, 0.76, -0.16], [-0.16, 0.76, -0.16],
-  ], GLASS, { glass: true, out: [0, 0.55, 0] });
-  addFace(carFaces, [
-    [-0.26, 0.50, 0.38], [-0.14, 0.76, 0.20], [0.14, 0.76, 0.20], [0.26, 0.50, 0.38],
-  ], GLASS, { glass: true, out: [0, 0.55, 0] });
-  [-0.34, -0.22, 0.22, 0.34].forEach((x) => {
-    addFace(carFaces, [
-      [x - 0.045, 0.30, -1.15], [x + 0.045, 0.30, -1.15], [x + 0.045, 0.40, -1.15], [x - 0.045, 0.40, -1.15],
-    ], [255, 42, 42], { light: true, out: [0, 0.45, 0] });
-  });
-  addWheel(wheelLocal, 0.20, 0.18, 10);
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(34, 1, 0.1, 40);
+    camera.position.set(0, 1.15, -5.15);
+    camera.lookAt(0, 0.48, 0.15);
 
-  function rotateCar(p, yaw, pitch, roll) {
-    let x = p[0];
-    let y = p[1];
-    let z = p[2];
-    const cp = Math.cos(pitch);
-    const sp = Math.sin(pitch);
-    const y1 = y * cp - z * sp;
-    const z1 = y * sp + z * cp;
-    const cr = Math.cos(roll);
-    const sr = Math.sin(roll);
-    const x2 = x * cr - y1 * sr;
-    const y2 = x * sr + y1 * cr;
-    const cy = Math.cos(yaw);
-    const sy = Math.sin(yaw);
-    return [x2 * cy + z1 * sy, y2, -x2 * sy + z1 * cy];
-  }
+    scene.add(new THREE.HemisphereLight(0xb7c7ea, 0x14120e, 0.72));
+    const moon = new THREE.DirectionalLight(0xe7eeff, 1.55);
+    moon.position.set(-3.2, 7.5, -2.4);
+    scene.add(moon);
+    const fill = new THREE.DirectionalLight(0x1f4fd8, 0.28);
+    fill.position.set(2, 1.2, 4);
+    scene.add(fill);
 
-  function steerPoint(p, angle, origin) {
-    const x = p[0] - origin[0];
-    const z = p[2] - origin[2];
-    const c = Math.cos(angle);
-    const s = Math.sin(angle);
-    return [origin[0] + x * c + z * s, p[1], origin[2] - x * s + z * c];
-  }
+    const bodyMat = new THREE.MeshStandardMaterial({
+      color: 0x143fbe,
+      metalness: 0.4,
+      roughness: 0.35,
+    });
+    const blackMat = new THREE.MeshStandardMaterial({
+      color: 0x12141a,
+      metalness: 0.55,
+      roughness: 0.42,
+    });
+    const glassMat = new THREE.MeshStandardMaterial({
+      color: 0x101820,
+      metalness: 0.15,
+      roughness: 0.08,
+      transparent: true,
+      opacity: 0.72,
+    });
+    const tireMat = new THREE.MeshStandardMaterial({ color: 0x141414, roughness: 0.92, metalness: 0.05 });
+    const rimMat = new THREE.MeshStandardMaterial({ color: 0x8d949e, metalness: 0.75, roughness: 0.32 });
+    const lightMat = new THREE.MeshBasicMaterial({ color: 0xff2424 });
 
-  function projectCar(p) {
-    const depth = Math.max(0.45, p[2] - CAR_EYE[2]);
-    const f = (viewW * 0.62) / depth;
-    return {
-      x: viewW / 2 + p[0] * f,
-      y: viewH * 0.94 - p[1] * f * 0.78,
-      z: p[2],
+    const extrude = (pts, depth) => {
+      const shape = new THREE.Shape();
+      shape.moveTo(pts[0][0], pts[0][1]);
+      for (let i = 1; i < pts.length; i += 1) shape.lineTo(pts[i][0], pts[i][1]);
+      const geom = new THREE.ExtrudeGeometry(shape, {
+        depth,
+        bevelEnabled: true,
+        bevelThickness: 0.03,
+        bevelSize: 0.035,
+        bevelSegments: 2,
+        curveSegments: 8,
+      });
+      geom.translate(0, -0.14, -depth / 2);
+      geom.rotateY(-Math.PI / 2);
+      geom.translate(0, 0, -1.16);
+      return geom;
     };
+
+    const car = new THREE.Group();
+    car.rotation.order = "YXZ";
+    scene.add(car);
+
+    const body = new THREE.Mesh(extrude([
+      [0.00, 0.18],
+      [0.00, 0.46],
+      [0.36, 0.52],
+      [1.35, 0.54],
+      [1.85, 0.46],
+      [2.25, 0.34],
+      [2.42, 0.22],
+      [2.42, 0.14],
+      [0.00, 0.14],
+    ], 1.78), bodyMat);
+    const cabin = new THREE.Mesh(extrude([
+      [0.55, 0.50],
+      [0.88, 0.78],
+      [1.32, 0.80],
+      [1.58, 0.54],
+      [0.55, 0.50],
+    ], 1.08), glassMat);
+    const roof = new THREE.Mesh(new THREE.BoxGeometry(0.96, 0.045, 0.48), blackMat);
+    roof.position.set(0, 0.66, -0.22);
+    car.add(body, cabin, roof);
+    const rearZ = -1.16;
+
+    const skirt = new THREE.Mesh(new THREE.BoxGeometry(1.72, 0.08, 1.9), blackMat);
+    skirt.position.set(0, 0.12, 0.05);
+    car.add(skirt);
+
+    const wing = new THREE.Mesh(new THREE.BoxGeometry(1.28, 0.035, 0.18), blackMat);
+    wing.position.set(0, 0.42, -0.98);
+    const strutGeo = new THREE.BoxGeometry(0.03, 0.045, 0.03);
+    const strutL = new THREE.Mesh(strutGeo, blackMat);
+    const strutR = new THREE.Mesh(strutGeo, blackMat);
+    strutL.position.set(-0.32, 0.395, -0.98);
+    strutR.position.set(0.32, 0.395, -0.98);
+    const plate = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.2, 0.025), blackMat);
+    plate.position.set(0, 0.3, -1.15);
+    car.add(wing, strutL, strutR, plate);
+
+    [-1, 1].forEach((side) => {
+      const flare = new THREE.Mesh(new THREE.SphereGeometry(0.34, 22, 14), bodyMat);
+      flare.scale.set(0.72, 0.42, 1.25);
+      flare.position.set(side * 0.86, 0.32, rearZ + 0.48);
+      car.add(flare);
+    });
+
+    const makeWheel = (front) => {
+      const group = new THREE.Group();
+      const tire = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.26, 24), tireMat);
+      const rim = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.28, 16), rimMat);
+      tire.rotation.z = Math.PI / 2;
+      rim.rotation.z = Math.PI / 2;
+      group.add(tire, rim);
+      group.userData.front = front;
+      return group;
+    };
+    const wheelPos = [
+      [-0.86, 0.28, 0.62, true],
+      [0.86, 0.28, 0.62, true],
+      [-0.88, 0.28, -0.78, false],
+      [0.88, 0.28, -0.78, false],
+    ];
+    const wheelGroups = wheelPos.map(([x, y, z, front]) => {
+      const group = makeWheel(front);
+      group.position.set(x, y, z);
+      car.add(group);
+      return group;
+    });
+
+    const lightGeo = new THREE.CylinderGeometry(0.072, 0.072, 0.018, 24);
+    [-0.46, -0.3, 0.3, 0.46].forEach((x) => {
+      const lamp = new THREE.Mesh(lightGeo, lightMat);
+      lamp.rotation.x = Math.PI / 2;
+      lamp.position.set(x, 0.3, -1.155);
+      car.add(lamp);
+      const glow = new THREE.PointLight(0xff2222, 0.35, 1.8, 2);
+      glow.position.copy(lamp.position);
+      car.add(glow);
+    });
+
+    const shadow = new THREE.Mesh(
+      new THREE.CircleGeometry(1.15, 32),
+      new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.42, depthWrite: false })
+    );
+    shadow.rotation.x = -Math.PI / 2;
+    shadow.position.set(0, 0.02, 0);
+    shadow.scale.set(1.25, 0.62, 1);
+    car.add(shadow);
+
+    return { renderer, scene, camera, car, glCanvas, wheelGroups };
+  }
+
+  function resizeWebGL() {
+    if (!webgl) return;
+    const rect = canvas.parentElement.getBoundingClientRect();
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    webgl.renderer.setPixelRatio(dpr);
+    webgl.renderer.setSize(Math.max(1, rect.width), Math.max(1, rect.height), false);
+    webgl.camera.aspect = rect.width / Math.max(1, rect.height);
+    webgl.camera.updateProjectionMatrix();
+  }
+
+  function drawCarFallback() {
+    const W = viewW * 0.25;
+    const H = W * 0.55;
+    const x = viewW / 2;
+    const y = viewH - 4;
+    ctx.fillStyle = "rgba(0,0,0,0.4)";
+    ctx.beginPath();
+    ctx.ellipse(x, y, W * 0.45, 10, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#1f4fd8";
+    ctx.fillRect(x - W * 0.42, y - H * 0.7, W * 0.84, H * 0.55);
+    ctx.fillStyle = "#101218";
+    ctx.fillRect(x - W * 0.28, y - H, W * 0.56, H * 0.32);
+    ctx.fillStyle = "#ff3030";
+    [-0.28, -0.14, 0.14, 0.28].forEach((s) => {
+      ctx.beginPath();
+      ctx.arc(x + s * W, y - H * 0.4, W * 0.045, 0, Math.PI * 2);
+      ctx.fill();
+    });
   }
 
   function drawCar() {
     const steer = (keys.right || touch.right ? 1 : 0) - (keys.left || touch.left ? 1 : 0);
-    const yaw = Math.max(-0.61, Math.min(0.61, driftAngle * 0.95 + steer * 0.28));
-    const throttle = keys.up || touch.gas;
-    const braking = keys.down;
-    const pitch = (braking ? 0.07 : 0) - (throttle ? 0.05 : 0);
-    const roll = -yaw * 0.42;
-    const bob = Math.sin(position / 70) * (0.012 + (speed / MAX_SPEED) * 0.02) * (offroad ? 1.6 : 1);
-    const wheelSteer = steer * 0.42;
-    const wheels = [
-      { at: [-0.52, 0.2, 0.64], front: true },
-      { at: [0.52, 0.2, 0.64], front: true },
-      { at: [-0.52, 0.2, -0.64], front: false },
-      { at: [0.52, 0.2, -0.64], front: false },
-    ];
-    const queue = carFaces.map((face) => ({ pts: face.pts, color: face.color, glass: face.glass, light: face.light }));
-    wheels.forEach((wheel) => {
-      wheelLocal.forEach((face) => {
-        const pts = face.pts.map((pt) => {
-          const spun = wheel.front ? steerPoint(pt, wheelSteer, [0, 0, 0]) : pt;
-          return [spun[0] + wheel.at[0], spun[1] + wheel.at[1], spun[2] + wheel.at[2]];
-        });
-        queue.push({ pts, color: face.color, rim: face.rim });
-      });
+    const targetYaw = Math.max(-0.35, Math.min(0.35, steer * 0.2 + Math.tanh(driftAngle) * 0.16));
+    const ease = 1 - Math.exp(-lastDt * 7);
+    visualYaw += (targetYaw - visualYaw) * ease;
+    const targetPitch = (keys.down ? 0.055 : 0) - ((keys.up || touch.gas) ? 0.04 : 0);
+    visualPitch += (targetPitch - visualPitch) * ease;
+    if (!webgl) {
+      drawCarFallback();
+      return;
+    }
+    const car = webgl.car;
+    car.rotation.y = visualYaw;
+    car.rotation.x = visualPitch;
+    car.rotation.z = -visualYaw * 0.28;
+    webgl.wheelGroups.forEach((wheel) => {
+      if (wheel.userData.front) wheel.rotation.y = steer * 0.4;
     });
-
-    const drawn = [];
-    const lights = [];
-    queue.forEach((face) => {
-      const world = face.pts.map((pt) => {
-        const moved = [pt[0], pt[1] + bob, pt[2]];
-        return rotateCar(moved, yaw, pitch, roll);
-      });
-      const nrm = normalizeVec(faceNormal(world));
-      const center = centroid(world);
-      const toEye = vsub(CAR_EYE, center);
-      if (vdot(nrm, toEye) <= 0.0001) return;
-      const lightAmt = Math.max(0, vdot(nrm, CAR_LIGHT));
-      const shade = face.light ? 1 : 0.42 + 0.58 * lightAmt;
-      const proj = world.map(projectCar);
-      drawn.push({ proj, color: face.color, shade, glass: face.glass, light: face.light, depth: center[2], center: projectCar(center) });
-      if (face.light) lights.push(projectCar(center));
-    });
-    drawn.sort((a, b) => b.depth - a.depth);
-
-    ctx.save();
-    ctx.translate(viewW / 2, viewH - 6);
-    ctx.rotate(yaw);
-    ctx.scale(1.05, 0.26);
-    ctx.fillStyle = "rgba(0, 0, 0, 0.48)";
-    ctx.beginPath();
-    ctx.ellipse(0, 0, viewW * 0.115, viewW * 0.115, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-
-    lights.forEach((light) => {
-      ctx.fillStyle = "rgba(255, 36, 36, 0.28)";
-      ctx.beginPath();
-      ctx.ellipse(light.x, viewH - 8, 16, 5, yaw * 0.3, 0, Math.PI * 2);
-      ctx.fill();
-    });
-
-    smoke.forEach((puff) => {
-      ctx.fillStyle = `rgba(198, 206, 216, ${Math.max(0, puff.life) * 0.4})`;
-      ctx.beginPath();
-      ctx.arc(viewW / 2 + puff.x * Math.cos(yaw), viewH * 0.9 + puff.y, puff.r, 0, Math.PI * 2);
-      ctx.fill();
-    });
-
-    drawn.forEach((face) => {
-      const [r, g, b] = face.color;
-      const k = face.glass ? 0.22 + face.shade * 0.35 : face.shade;
-      let rr = Math.min(255, r * k);
-      let gg = Math.min(255, g * k);
-      let bb = Math.min(255, b * k);
-      if (face.glass && face.shade > 0.72) {
-        rr = Math.min(255, rr + 70);
-        gg = Math.min(255, gg + 80);
-        bb = Math.min(255, bb + 90);
-      }
-      ctx.beginPath();
-      face.proj.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
-      ctx.closePath();
-      ctx.fillStyle = `rgb(${rr | 0}, ${gg | 0}, ${bb | 0})`;
-      ctx.fill();
-      ctx.strokeStyle = "rgba(6, 8, 14, 0.55)";
-      ctx.lineWidth = 1;
-      ctx.stroke();
-    });
-
-    lights.forEach((light) => {
-      const bloom = ctx.createRadialGradient(light.x, light.y, 1, light.x, light.y, 16);
-      bloom.addColorStop(0, "rgba(255, 60, 60, 0.85)");
-      bloom.addColorStop(0.45, "rgba(255, 20, 20, 0.28)");
-      bloom.addColorStop(1, "rgba(255, 0, 0, 0)");
-      ctx.fillStyle = bloom;
-      ctx.beginPath();
-      ctx.arc(light.x, light.y, 16, 0, Math.PI * 2);
-      ctx.fill();
-    });
-  }
-
-  function roundRect(x, y, w, h, r) {
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.arcTo(x + w, y, x + w, y + h, r);
-    ctx.arcTo(x + w, y + h, x, y + h, r);
-    ctx.arcTo(x, y + h, x, y, r);
-    ctx.arcTo(x, y, x + w, y, r);
-    ctx.closePath();
+    webgl.renderer.render(webgl.scene, webgl.camera);
   }
 
   function frame(now) {
@@ -828,6 +824,7 @@
     }
     const dt = Math.min(0.033, (now - lastTime) / 1000 || 0.016);
     lastTime = now;
+    lastDt = dt;
     step(dt);
     render();
     raf = requestAnimationFrame(frame);
@@ -1016,6 +1013,7 @@
   } else {
     window.addEventListener("resize", resize);
   }
+  webgl = initWebGL();
   resize();
 
   window.addEventListener("blur", () => {
