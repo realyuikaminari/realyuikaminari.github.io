@@ -34,14 +34,15 @@
   const COLORS = {
     skyTop: "#070b16",
     skyMid: "#121a2e",
-    roadA: "#3a455c",
-    roadB: "#465270",
-    shoulderA: "#1a2230",
-    shoulderB: "#151c28",
-    grassA: "#0a0e0c",
-    grassB: "#101614",
-    edge: "#5b8cff",
-    lane: "rgba(232, 237, 245, 0.75)",
+    roadA: "#323a4c",
+    roadB: "#384256",
+    shoulderA: "#1a222c",
+    shoulderB: "#141b26",
+    grassA: "#070b09",
+    grassB: "#0c120e",
+    rumbleA: "#f4f7fb",
+    rumbleB: "#2f6dff",
+    lane: "rgba(244, 247, 251, 0.88)",
     fog: "#10182a",
   };
 
@@ -366,9 +367,9 @@
 
     if (smoke.length < 48 && sliding && Math.random() < dt * 36) {
       smoke.push({
-        x: (Math.random() - 0.5) * 18,
+        x: (Math.random() < 0.5 ? -1 : 1) * viewW * 0.09 + (Math.random() - 0.5) * 10,
         y: 0,
-        vx: (Math.random() - 0.5) * 18 - driftAngle * 30,
+        vx: (Math.random() - 0.5) * 10 - driftAngle * 16,
         vy: 18 + Math.random() * 20,
         life: 0.55 + Math.random() * 0.35,
         r: 4 + Math.random() * 5,
@@ -398,7 +399,7 @@
     const scale = CAMERA_DEPTH / point.camera.z;
     point.screen.scale = scale;
     point.screen.x = viewW / 2 + scale * point.camera.x * viewW / 2;
-    point.screen.y = viewH * 0.46 - scale * point.camera.y * viewH / 2;
+    point.screen.y = viewH * 0.4 - scale * point.camera.y * viewH / 2;
     point.screen.w = scale * ROAD_WIDTH * viewW / 2;
   }
 
@@ -507,11 +508,12 @@
     let dShift = -base.curve * percent;
     let maxY = viewH;
     const sprites = [];
+    let anchor = null;
 
     ctx.clearRect(0, 0, viewW, viewH);
     drawSky(base.curve * 80 + playerX * 40);
     ctx.fillStyle = COLORS.grassA;
-    ctx.fillRect(0, viewH * 0.42, viewW, viewH);
+    ctx.fillRect(0, viewH * 0.38, viewW, viewH);
 
     const camZ = position - PLAYER_Z;
     for (let n = 0; n < DRAW_DISTANCE; n += 1) {
@@ -530,24 +532,42 @@
       const s2 = segment.p2.screen;
       if (!s1.scale || !s2.scale || s2.y >= s1.y || s2.y >= maxY) continue;
 
-      const fog = Math.pow(n / DRAW_DISTANCE, 1.6);
-      ctx.globalAlpha = 1 - fog * 0.72;
-      const alt = Math.floor(index / 3) % 2 === 0;
+      const fog = Math.pow(n / DRAW_DISTANCE, 1.35);
+      ctx.globalAlpha = 1 - fog * 0.88;
+      const alt = index % 2 === 0;
+      const rumble = index % 4 < 2 ? COLORS.rumbleA : COLORS.rumbleB;
       ctx.fillStyle = alt ? COLORS.shoulderA : COLORS.shoulderB;
-      trap(s1.x, s1.y, s1.w * 1.22, s2.x, s2.y, s2.w * 1.22);
-      ctx.fillStyle = COLORS.edge;
-      trap(s1.x, s1.y, s1.w * 1.06, s2.x, s2.y, s2.w * 1.06);
+      trap(s1.x, s1.y, s1.w * 1.28, s2.x, s2.y, s2.w * 1.28);
+      ctx.fillStyle = rumble;
+      trap(s1.x, s1.y, s1.w * 1.04, s2.x, s2.y, s2.w * 1.04);
       ctx.fillStyle = alt ? COLORS.roadA : COLORS.roadB;
       trap(s1.x, s1.y, s1.w * 0.96, s2.x, s2.y, s2.w * 0.96);
-      if (index % 5 === 0) {
+      if (index % 6 < 3) {
         ctx.fillStyle = COLORS.lane;
-        trap(s1.x, s1.y, s1.w * 0.03, s2.x, s2.y, s2.w * 0.03);
+        trap(s1.x, s1.y, s1.w * 0.018, s2.x, s2.y, s2.w * 0.018);
       }
       ctx.globalAlpha = 1;
+      if (!anchor) anchor = { x: s1.x, y: s1.y, w: s1.w, road: alt ? COLORS.roadA : COLORS.roadB, rumble };
       maxY = s1.y;
       if (segment.sprite) sprites.push({ kind: "sprite", segment });
       if (segment.rail) sprites.push({ kind: "rail", segment });
     }
+
+    if (anchor && anchor.y < viewH) {
+      ctx.fillStyle = anchor.rumble;
+      trap(anchor.x, viewH + 8, anchor.w * 1.12, anchor.x, anchor.y, anchor.w * 1.04);
+      ctx.fillStyle = anchor.road;
+      trap(anchor.x, viewH + 8, anchor.w * 1.02, anchor.x, anchor.y, anchor.w * 0.96);
+    }
+
+    const glow = ctx.createRadialGradient(viewW / 2, viewH * 0.72, 10, viewW / 2, viewH * 0.56, viewW * 0.2);
+    glow.addColorStop(0, "rgba(226, 236, 255, 0.34)");
+    glow.addColorStop(0.45, "rgba(90, 130, 255, 0.12)");
+    glow.addColorStop(1, "rgba(31, 79, 216, 0)");
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.ellipse(viewW / 2, viewH * 0.64, viewW * 0.16, viewH * 0.2, 0, 0, Math.PI * 2);
+    ctx.fill();
 
     for (let i = sprites.length - 1; i >= 0; i -= 1) {
       const item = sprites[i];
@@ -563,53 +583,101 @@
   }
 
   function drawCar() {
-    const bob = Math.sin(position / 90) * (offroad ? 2.2 : 0.6);
-    const x = viewW / 2 + driftAngle * viewW * 0.06;
-    const y = viewH * 0.84 + bob;
-    const yaw = driftAngle * 0.7 + (keys.left || touch.left ? -0.08 : 0) + (keys.right || touch.right ? 0.08 : 0);
-
-    ctx.save();
-    ctx.translate(x, y - 36);
-    ctx.rotate(yaw);
-    const beam = ctx.createLinearGradient(0, 0, 0, -viewH * 0.28);
-    beam.addColorStop(0, "rgba(214, 228, 255, 0.38)");
-    beam.addColorStop(1, "rgba(31, 79, 216, 0)");
-    ctx.fillStyle = beam;
-    ctx.beginPath();
-    ctx.moveTo(-8, 0);
-    ctx.lineTo(8, 0);
-    ctx.lineTo(36, -viewH * 0.26);
-    ctx.lineTo(-36, -viewH * 0.26);
-    ctx.fill();
-    ctx.restore();
+    const steer = (keys.right || touch.right ? 1 : 0) - (keys.left || touch.left ? 1 : 0);
+    const yaw = Math.max(-1, Math.min(1, driftAngle * 1.35 + steer * 0.55));
+    const pose = yaw > 0.2 ? 1 : yaw < -0.2 ? -1 : 0;
+    const W = viewW * 0.25;
+    const H = W * 0.58;
+    const bob = Math.sin(position / 90) * (offroad ? 1.6 : 0.45);
+    const x = viewW / 2;
+    const y = viewH - 2 + bob;
 
     smoke.forEach((puff) => {
-      ctx.fillStyle = `rgba(190, 198, 210, ${Math.max(0, puff.life) * 0.35})`;
+      ctx.fillStyle = `rgba(198, 206, 216, ${Math.max(0, puff.life) * 0.4})`;
       ctx.beginPath();
-      ctx.arc(x + puff.x, y + 16 + puff.y, puff.r, 0, Math.PI * 2);
+      ctx.arc(x + puff.x, y - H * 0.22 + puff.y, puff.r, 0, Math.PI * 2);
       ctx.fill();
     });
 
     ctx.save();
     ctx.translate(x, y);
-    ctx.rotate(yaw);
+    ctx.transform(1, 0, pose * -0.2, 1, pose * W * 0.03, 0);
+
     ctx.fillStyle = "#07080c";
-    ctx.fillRect(-28, -6, 10, 22);
-    ctx.fillRect(18, -6, 10, 22);
+    roundRect(-W * 0.54, -H * 0.46, W * 0.16, H * 0.42, 5);
+    ctx.fill();
+    roundRect(W * 0.38, -H * 0.46, W * 0.16, H * 0.42, 5);
+    ctx.fill();
+
     ctx.fillStyle = "#1f4fd8";
-    roundRect(-24, -20, 48, 40, 8);
+    ctx.beginPath();
+    ctx.moveTo(-W * 0.46, -H * 0.08);
+    ctx.lineTo(-W * 0.38, -H * 0.58);
+    ctx.lineTo(W * 0.38, -H * 0.58);
+    ctx.lineTo(W * 0.46, -H * 0.08);
+    ctx.closePath();
     ctx.fill();
-    ctx.fillStyle = "#101218";
-    roundRect(-16, -16, 32, 16, 4);
+
+    if (pose !== 0) {
+      ctx.fillStyle = "#16368f";
+      ctx.beginPath();
+      if (pose < 0) {
+        ctx.moveTo(-W * 0.46, -H * 0.08);
+        ctx.lineTo(-W * 0.38, -H * 0.58);
+        ctx.lineTo(-W * 0.6, -H * 0.46);
+        ctx.lineTo(-W * 0.64, -H * 0.1);
+      } else {
+        ctx.moveTo(W * 0.46, -H * 0.08);
+        ctx.lineTo(W * 0.38, -H * 0.58);
+        ctx.lineTo(W * 0.6, -H * 0.46);
+        ctx.lineTo(W * 0.64, -H * 0.1);
+      }
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    ctx.fillStyle = "#0c0e14";
+    ctx.beginPath();
+    ctx.moveTo(-W * 0.3 + pose * W * 0.04, -H * 0.58);
+    ctx.lineTo(-W * 0.16 + pose * W * 0.07, -H * 0.96);
+    ctx.lineTo(W * 0.16 + pose * W * 0.07, -H * 0.96);
+    ctx.lineTo(W * 0.3 + pose * W * 0.04, -H * 0.58);
+    ctx.closePath();
     ctx.fill();
-    ctx.fillStyle = "#c8d4ea";
-    roundRect(-14, -6, 28, 10, 2);
+
+    ctx.fillStyle = "#1c283c";
+    ctx.beginPath();
+    ctx.moveTo(-W * 0.22 + pose * W * 0.03, -H * 0.64);
+    ctx.lineTo(-W * 0.12 + pose * W * 0.05, -H * 0.88);
+    ctx.lineTo(W * 0.12 + pose * W * 0.05, -H * 0.88);
+    ctx.lineTo(W * 0.22 + pose * W * 0.03, -H * 0.64);
+    ctx.closePath();
     ctx.fill();
-    ctx.fillStyle = "#e23a3a";
-    ctx.fillRect(-18, -2, 8, 4);
-    ctx.fillRect(10, -2, 8, 4);
-    ctx.fillStyle = "#0c0e12";
-    ctx.fillRect(-22, -22, 44, 4);
+
+    ctx.fillStyle = "#07080c";
+    ctx.fillRect(-W * 0.36, -H * 0.7, W * 0.72, H * 0.07);
+
+    ctx.fillStyle = "#141820";
+    ctx.fillRect(-W * 0.46, -H * 0.24, W * 0.92, H * 0.16);
+
+    [-0.34, -0.22, 0.22, 0.34].forEach((spot) => {
+      const cx = spot * W;
+      const cy = -H * 0.36;
+      ctx.fillStyle = "rgba(255, 70, 70, 0.45)";
+      ctx.beginPath();
+      ctx.arc(cx, cy, W * 0.055, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#ff3a3a";
+      ctx.beginPath();
+      ctx.arc(cx, cy, W * 0.03, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    ctx.fillStyle = "#3a404a";
+    ctx.beginPath();
+    ctx.arc(-W * 0.14, -H * 0.12, W * 0.028, 0, Math.PI * 2);
+    ctx.arc(W * 0.14, -H * 0.12, W * 0.028, 0, Math.PI * 2);
+    ctx.fill();
     ctx.restore();
   }
 
