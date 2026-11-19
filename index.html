@@ -21,7 +21,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+JP:wght@400;500;700;900&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=10">
+  <link rel="stylesheet" href="styles.css?v=11">
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
@@ -189,10 +189,29 @@
           </p>
         </header>
 
-        <div class="garage-stage">
+        <div class="garage-stage drift-stage" id="drift-game">
           <div class="garage-stage-bg" aria-hidden="true"></div>
-          <figure class="car-figure">
-            <img src="assets/car-touge.webp" width="1280" height="720" alt="Yui’s metallic electric-blue and black two-door coupe parked on a wet night mountain pass, headlights on, city lights in the valley below. No manufacturer marks.">
+          <figure class="car-figure drift-figure">
+            <div class="drift-play">
+              <img class="drift-poster" src="assets/car-touge.webp" width="1280" height="720" alt="Yui’s metallic electric-blue and black two-door coupe parked on a wet night mountain pass, headlights on, city lights in the valley below. No manufacturer marks.">
+              <canvas class="drift-canvas" hidden tabindex="0" aria-label="Night run drift game. Arrows or WASD to drive, Space for handbrake, Escape to pause."></canvas>
+              <div class="drift-hud" hidden>
+                <span>Score <b data-drift="score">0</b></span>
+                <span>Combo <b data-drift="combo">x1</b></span>
+                <span>Best <b data-drift="best">0</b></span>
+              </div>
+              <button class="drift-start" type="button">
+                <span class="drift-start-title">Click / tap to drift</span>
+                <span class="drift-start-controls">Arrows / WASD · Space = handbrake · Esc pauses</span>
+              </button>
+              <p class="drift-pause" hidden>Paused · Esc or tap to resume</p>
+              <div class="drift-touch" hidden>
+                <button type="button" data-touch="left" aria-label="Steer left">Left</button>
+                <button type="button" data-touch="gas" aria-label="Throttle">Gas</button>
+                <button type="button" data-touch="drift" aria-label="Handbrake">Drift</button>
+                <button type="button" data-touch="right" aria-label="Steer right">Right</button>
+              </div>
+            </div>
             <figcaption>Midnight blue over charcoal  ·  mountain-pass setup  ·  lights on</figcaption>
           </figure>
         </div>
@@ -333,7 +352,8 @@
     </div>
   </footer>
 
-  <script src="games.js?v=10"></script>
-  <script src="main.js?v=10"></script>
+  <script src="games.js?v=11"></script>
+  <script src="main.js?v=11"></script>
+  <script src="drift.js?v=11" defer></script>
 </body>
 </html>

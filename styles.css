@@ -1077,6 +1077,148 @@ body.lightbox-open { overflow: hidden; }
   background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.35));
 }
 
+.drift-play {
+  position: relative;
+  background: #07090f;
+}
+
+.drift-poster,
+.drift-canvas {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  display: block;
+  object-fit: cover;
+}
+
+.drift-canvas[hidden],
+.drift-hud[hidden],
+.drift-start[hidden],
+.drift-pause[hidden],
+.drift-touch[hidden] {
+  display: none !important;
+}
+
+.drift-canvas {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  background: #07090f;
+  touch-action: none;
+  outline: none;
+}
+
+.drift-canvas:focus-visible {
+  outline: 2px solid var(--blue-lit);
+  outline-offset: -3px;
+}
+
+.drift-hud {
+  position: absolute;
+  top: 0.7rem;
+  left: 0.7rem;
+  right: 0.7rem;
+  display: flex;
+  gap: 0.7rem;
+  pointer-events: none;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--steel);
+}
+
+.drift-hud span {
+  background: rgba(8, 10, 16, 0.72);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.28rem 0.6rem;
+}
+
+.drift-hud b {
+  color: var(--white);
+  font-weight: 600;
+}
+
+.drift-hud [data-drift="combo"] { color: var(--blue-soft); }
+
+.drift-start,
+.drift-pause {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  display: grid;
+  place-content: center;
+  gap: 0.45rem;
+  text-align: center;
+  padding: 1.2rem;
+  border: 0;
+  background:
+    linear-gradient(180deg, rgba(7, 9, 15, 0.08), rgba(7, 9, 15, 0.55));
+  color: var(--white);
+  cursor: pointer;
+}
+
+.drift-start-title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(2rem, 5vw, 3.4rem);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 0.9;
+}
+
+.drift-start-controls,
+.drift-pause {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--blue-soft);
+}
+
+.drift-pause {
+  background: rgba(7, 9, 15, 0.55);
+}
+
+.drift-touch {
+  position: absolute;
+  left: 0.6rem;
+  right: 0.6rem;
+  bottom: 0.6rem;
+  display: none;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.45rem;
+  z-index: 2;
+}
+
+.drift-stage.is-running .drift-touch { display: grid; }
+
+.drift-touch button {
+  min-height: 48px;
+  border-radius: 14px;
+  border: 1px solid var(--line-strong);
+  background: rgba(8, 10, 16, 0.82);
+  color: var(--white);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  touch-action: none;
+}
+
+.drift-touch button.is-held {
+  background: var(--blue);
+  border-color: var(--blue-lit);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .drift-stage.is-running .drift-touch { display: none; }
+}
+
+@media (max-width: 720px) {
+  .drift-stage.is-running .drift-touch { display: grid; }
+}
+
 .garage-specs {
   list-style: none;
   margin: 0;
