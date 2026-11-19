@@ -27,6 +27,9 @@
  *             shows its own button
  * aiAssisted  Shows an "AI-assisted" tag. Defaults to true when omitted;
  *             set false for a project made without AI tools
+ * screenshots Optional promo stills: [{ src, caption }, ...]. Shown as a
+ *             strip under the card; captions are the image alt text and
+ *             the lightbox label
  *
  * Host large binaries on itch.io or GitHub Releases. GitHub Pages has a
  * 100 MB file limit and is meant for the site itself, not big installers.
@@ -53,6 +56,21 @@ const GAMES = [
     badge: "Demo available",
     comingSoon: true,
     aiAssisted: true,
+    screenshots: [
+      { src: "assets/screens/mecha_1_title.webp", caption: "Title screen" },
+      {
+        src: "assets/screens/mecha_2_president.webp",
+        caption: "President 88's arriving in Hangar 7",
+      },
+      {
+        src: "assets/screens/mecha_3_hover.webp",
+        caption: "Three mechs hovering over the city",
+      },
+      {
+        src: "assets/screens/mecha_4_skymother.webp",
+        caption: "Skymother boss battle",
+      },
+    ],
   },
   {
     id: "fomx-gang",
@@ -71,6 +89,18 @@ const GAMES = [
       "Portable .exe — no install needed. Windows SmartScreen may show “Windows protected your PC” because it’s from an indie developer. Click More info, then Run anyway.",
     comingSoon: false,
     aiAssisted: true,
+    screenshots: [
+      { src: "assets/screens/fomx_1_title.webp", caption: "Title screen" },
+      { src: "assets/screens/fomx_2_select.webp", caption: "Choose Your Outlaw" },
+      {
+        src: "assets/screens/fomx_3_canyon.webp",
+        caption: "88's in Red Mesa Canyon",
+      },
+      {
+        src: "assets/screens/fomx_4_boss.webp",
+        caption: "Federale boss, Mexico bonus",
+      },
+    ],
   },
 ];
 

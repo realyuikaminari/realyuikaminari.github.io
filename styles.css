@@ -563,6 +563,25 @@ a:hover { color: var(--white); }
   box-shadow: 0 20px 50px rgba(31, 79, 216, 0.16), var(--shadow);
 }
 
+.card.has-shots {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(240px, 420px) minmax(0, 1fr);
+  grid-template-areas:
+    "media body"
+    "shots shots";
+}
+
+.card.has-shots:hover { transform: none; }
+
+.card.has-shots .card-media {
+  grid-area: media;
+  align-self: start;
+}
+
+.card.has-shots .card-body { grid-area: body; }
+.card.has-shots .shots { grid-area: shots; }
+
 .card-media {
   position: relative;
   aspect-ratio: 16 / 9;
@@ -676,6 +695,158 @@ a:hover { color: var(--white); }
   gap: 0.55rem;
 }
 .card-actions .btn { width: 100%; }
+
+.shots { padding: 0 1.1rem 1.15rem; }
+
+.shots-label {
+  margin: 0 0 0.55rem;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--steel);
+}
+
+.shots-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.shot {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--charcoal);
+  cursor: zoom-in;
+}
+
+.shot img {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  display: block;
+}
+
+.shot:hover,
+.shot:focus-visible {
+  border-color: var(--blue-soft);
+  box-shadow: 0 0 0 1px var(--blue-soft);
+}
+
+.lightbox[hidden] { display: none; }
+
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  padding: 1.2rem;
+}
+
+.lightbox-backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  padding: 0;
+  background: rgba(6, 7, 12, 0.88);
+  cursor: zoom-out;
+}
+
+.lightbox-dialog {
+  position: relative;
+  z-index: 1;
+  width: min(1080px, 100%);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "close close close"
+    "prev figure next"
+    "caption caption caption";
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.lightbox-figure {
+  grid-area: figure;
+  margin: 0;
+}
+
+.lightbox-img {
+  width: 100%;
+  max-height: min(76vh, 720px);
+  object-fit: contain;
+  background: #07090f;
+  border: 1px solid var(--line-strong);
+  border-radius: 14px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
+}
+
+.lightbox-figure figcaption {
+  margin: 0.7rem 0 0;
+  text-align: center;
+  color: var(--lgray);
+  font-size: 0.95rem;
+}
+
+.lightbox-close,
+.lightbox-nav {
+  border: 1px solid var(--line-strong);
+  background: rgba(18, 22, 31, 0.92);
+  color: var(--white);
+  cursor: pointer;
+}
+
+.lightbox-close {
+  grid-area: close;
+  justify-self: end;
+  min-height: 36px;
+  padding: 0.3rem 0.8rem;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.lightbox-nav {
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  position: relative;
+}
+
+.lightbox-prev { grid-area: prev; }
+.lightbox-next { grid-area: next; }
+
+.lightbox-nav::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 9px;
+  height: 9px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+}
+
+.lightbox-prev::before { transform: rotate(135deg); margin-left: 16px; }
+.lightbox-next::before { transform: rotate(-45deg); margin-right: 16px; }
+
+.lightbox-close:hover,
+.lightbox-nav:hover {
+  border-color: var(--blue-soft);
+  color: var(--white);
+  background: rgba(31, 79, 216, 0.35);
+}
+
+body.lightbox-open { overflow: hidden; }
 
 .empty {
   grid-column: 1 / -1;
@@ -1160,6 +1331,29 @@ a:hover { color: var(--white); }
 
   .game-grid,
   .link-grid { grid-template-columns: 1fr; }
+
+  .card.has-shots {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "media"
+      "body"
+      "shots";
+  }
+
+  .shots-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+  .lightbox { padding: 0.75rem; }
+
+  .lightbox-dialog {
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "close close"
+      "figure figure"
+      "prev next"
+      "caption caption";
+  }
+
+  .lightbox-nav { justify-self: center; }
 
   .specs { grid-template-columns: 1fr; }
 
