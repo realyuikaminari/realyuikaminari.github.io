@@ -582,102 +582,254 @@
     drawCar();
   }
 
+  let carSprites = null;
+
+  function paintPose(g, cssW, cssH, pose) {
+    const W = cssW * 0.7;
+    const H = W * 0.64;
+    const near = pose;
+    const fx = (x) => {
+      if (!pose) return x;
+      return x < 0 ? x * (pose > 0 ? 0.74 : 1.08) : x * (pose > 0 ? 1.08 : 0.74);
+    };
+    const poly = (pts) => {
+      g.beginPath();
+      pts.forEach((p, i) => (i ? g.lineTo(fx(p[0]), p[1]) : g.moveTo(fx(p[0]), p[1])));
+      g.closePath();
+    };
+    const tire = (x, y, w, h) => {
+      const grad = g.createLinearGradient(x, y, x + w, y);
+      grad.addColorStop(0, "#2a2e36");
+      grad.addColorStop(0.18, "#0c0e12");
+      grad.addColorStop(0.55, "#1a1e26");
+      grad.addColorStop(1, "#050608");
+      g.fillStyle = grad;
+      g.beginPath();
+      g.roundRect(x, y, w, h, 7);
+      g.fill();
+      g.fillStyle = "#07080c";
+      for (let i = 0; i < 5; i += 1) g.fillRect(x + 4, y + 5 + i * (h / 5.4), w - 8, Math.max(2, h * 0.08));
+      g.fillStyle = "rgba(255,255,255,0.14)";
+      g.fillRect(x + 2, y + 3, 3, h - 6);
+    };
+
+    g.translate(cssW / 2, cssH - 8);
+
+    tire(fx(-W * 0.56), -H * 0.5, W * 0.18, H * 0.46);
+    tire(fx(W * 0.38), -H * 0.5, W * 0.18, H * 0.46);
+    if (near) {
+      const side = near > 0 ? 1 : -1;
+      tire(fx(side * W * 0.5), -H * 0.78, W * 0.15, H * 0.34);
+    }
+
+    if (near) {
+      const side = near > 0 ? 1 : -1;
+      const flank = g.createLinearGradient(0, -H, 0, 0);
+      flank.addColorStop(0, "#6f93ff");
+      flank.addColorStop(0.45, "#1a3fbe");
+      flank.addColorStop(1, "#0c226e");
+      g.fillStyle = flank;
+      poly([
+        [side * W * 0.46, -H * 0.1],
+        [side * W * 0.36, -H * 0.62],
+        [side * W * 0.7, -H * 0.78],
+        [side * W * 0.78, -H * 0.28],
+      ]);
+      g.fill();
+      g.fillStyle = "#10244f";
+      poly([
+        [side * W * 0.4, -H * 0.58],
+        [side * W * 0.34, -H * 0.78],
+        [side * W * 0.62, -H * 0.9],
+        [side * W * 0.66, -H * 0.66],
+      ]);
+      g.fill();
+      g.strokeStyle = "rgba(0,0,0,0.45)";
+      g.lineWidth = 2;
+      g.beginPath();
+      g.moveTo(fx(side * W * 0.52), -H * 0.32);
+      g.lineTo(fx(side * W * 0.58), -H * 0.7);
+      g.stroke();
+    }
+
+    const body = g.createLinearGradient(0, -H * 1.05, 0, 0);
+    body.addColorStop(0, "#8eacff");
+    body.addColorStop(0.22, "#3d6ef0");
+    body.addColorStop(0.55, "#1f4fd8");
+    body.addColorStop(0.82, "#16348f");
+    body.addColorStop(1, "#0c2268");
+    g.fillStyle = body;
+    poly([
+      [-W * 0.48, -H * 0.12],
+      [-W * 0.4, -H * 0.64],
+      [W * 0.4, -H * 0.64],
+      [W * 0.48, -H * 0.12],
+    ]);
+    g.fill();
+    g.strokeStyle = "rgba(214, 228, 255, 0.55)";
+    g.lineWidth = Math.max(1.5, W * 0.012);
+    g.beginPath();
+    g.moveTo(fx(-W * 0.36), -H * 0.6);
+    g.lineTo(fx(W * 0.36), -H * 0.6);
+    g.stroke();
+
+    g.fillStyle = "#0b0e16";
+    poly([
+      [-W * 0.3, -H * 0.64],
+      [-W * 0.16, -H * 1.02],
+      [W * 0.16, -H * 1.02],
+      [W * 0.3, -H * 0.64],
+    ]);
+    g.fill();
+    const glass = g.createLinearGradient(0, -H * 1.02, 0, -H * 0.64);
+    glass.addColorStop(0, "#9eb6de");
+    glass.addColorStop(0.35, "#24344e");
+    glass.addColorStop(1, "#121a28");
+    g.fillStyle = glass;
+    poly([
+      [-W * 0.24, -H * 0.7],
+      [-W * 0.13, -H * 0.96],
+      [W * 0.13, -H * 0.96],
+      [W * 0.24, -H * 0.7],
+    ]);
+    g.fill();
+    g.strokeStyle = "rgba(255,255,255,0.55)";
+    g.lineWidth = Math.max(1.2, W * 0.01);
+    g.beginPath();
+    g.moveTo(fx(-W * 0.18), -H * 0.9);
+    g.lineTo(fx(W * 0.08), -H * 0.78);
+    g.stroke();
+    g.strokeStyle = "rgba(0,0,0,0.55)";
+    g.beginPath();
+    g.moveTo(fx(-W * 0.22), -H * 0.66);
+    g.lineTo(fx(-W * 0.12), -H * 0.98);
+    g.moveTo(fx(W * 0.22), -H * 0.66);
+    g.lineTo(fx(W * 0.12), -H * 0.98);
+    g.stroke();
+
+    g.fillStyle = "#1a1e28";
+    poly([
+      [-W * 0.34, -H * 0.78],
+      [-W * 0.3, -H * 0.7],
+      [W * 0.3, -H * 0.7],
+      [W * 0.34, -H * 0.78],
+    ]);
+    g.fill();
+    g.fillStyle = "#3a4252";
+    g.fillRect(fx(-W * 0.34), -H * 0.78, fx(W * 0.34) - fx(-W * 0.34), H * 0.035);
+    g.fillStyle = "#0a0c12";
+    g.fillRect(fx(-W * 0.22), -H * 0.7, W * 0.035, H * 0.1);
+    g.fillRect(fx(W * 0.18), -H * 0.7, W * 0.035, H * 0.1);
+
+    const bumper = g.createLinearGradient(0, -H * 0.34, 0, -H * 0.08);
+    bumper.addColorStop(0, "#2a3140");
+    bumper.addColorStop(0.4, "#12161e");
+    bumper.addColorStop(1, "#07090e");
+    g.fillStyle = bumper;
+    g.fillRect(fx(-W * 0.48), -H * 0.28, fx(W * 0.48) - fx(-W * 0.48), H * 0.18);
+    g.fillStyle = "#05070b";
+    g.fillRect(fx(-W * 0.3), -H * 0.16, fx(W * 0.3) - fx(-W * 0.3), H * 0.07);
+    g.strokeStyle = "rgba(255,255,255,0.16)";
+    g.lineWidth = 1.5;
+    g.beginPath();
+    g.moveTo(fx(-W * 0.4), -H * 0.3);
+    g.lineTo(fx(W * 0.4), -H * 0.3);
+    g.stroke();
+
+    [-0.36, -0.24, 0.24, 0.36].forEach((spot) => {
+      const cx = fx(spot * W);
+      const cy = -H * 0.4;
+      const r = W * 0.048;
+      const bloom = g.createRadialGradient(cx, cy, r * 0.2, cx, cy, r * 2.4);
+      bloom.addColorStop(0, "rgba(255,50,50,0.95)");
+      bloom.addColorStop(0.45, "rgba(255,20,20,0.35)");
+      bloom.addColorStop(1, "rgba(255,0,0,0)");
+      g.fillStyle = bloom;
+      g.beginPath();
+      g.arc(cx, cy, r * 2.4, 0, Math.PI * 2);
+      g.fill();
+      g.fillStyle = "#4a0000";
+      g.beginPath();
+      g.arc(cx, cy, r, 0, Math.PI * 2);
+      g.fill();
+      g.strokeStyle = "#7a1010";
+      g.lineWidth = Math.max(1, r * 0.28);
+      g.stroke();
+      g.fillStyle = "#ff2d2d";
+      g.beginPath();
+      g.arc(cx, cy, r * 0.62, 0, Math.PI * 2);
+      g.fill();
+      g.fillStyle = "#ffe4e4";
+      g.beginPath();
+      g.arc(cx - r * 0.22, cy - r * 0.22, r * 0.18, 0, Math.PI * 2);
+      g.fill();
+    });
+
+    g.fillStyle = "#4a515c";
+    g.beginPath();
+    g.arc(fx(-W * 0.16), -H * 0.1, W * 0.03, 0, Math.PI * 2);
+    g.arc(fx(W * 0.16), -H * 0.1, W * 0.03, 0, Math.PI * 2);
+    g.fill();
+  }
+
+  function ensureCarSprites() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const cssW = Math.max(200, Math.round(viewW * 0.38));
+    const cssH = Math.round(cssW * 0.8);
+    if (carSprites && carSprites.cssW === cssW && carSprites.dpr === dpr) return;
+    carSprites = {
+      cssW,
+      cssH,
+      dpr,
+      poses: [-1, 0, 1].map((pose) => {
+        const c = document.createElement("canvas");
+        c.width = Math.round(cssW * dpr);
+        c.height = Math.round(cssH * dpr);
+        const g = c.getContext("2d");
+        g.setTransform(dpr, 0, 0, dpr, 0, 0);
+        paintPose(g, cssW, cssH, pose);
+        return c;
+      }),
+    };
+  }
+
   function drawCar() {
+    ensureCarSprites();
     const steer = (keys.right || touch.right ? 1 : 0) - (keys.left || touch.left ? 1 : 0);
     const yaw = Math.max(-1, Math.min(1, driftAngle * 1.35 + steer * 0.55));
-    const pose = yaw > 0.2 ? 1 : yaw < -0.2 ? -1 : 0;
-    const W = viewW * 0.25;
-    const H = W * 0.58;
-    const bob = Math.sin(position / 90) * (offroad ? 1.6 : 0.45);
-    const x = viewW / 2;
-    const y = viewH - 2 + bob;
+    const pose = yaw > 0.18 ? 1 : yaw < -0.18 ? -1 : 0;
+    const bob = Math.sin(position / 80) * (0.6 + (speed / MAX_SPEED) * 2.2) * (offroad ? 1.8 : 1);
+    const sprite = carSprites.poses[pose + 1];
+    const drawW = carSprites.cssW;
+    const drawH = carSprites.cssH;
+
+    ctx.save();
+    ctx.translate(viewW / 2, viewH - 8);
+    ctx.scale(1, 0.22);
+    ctx.fillStyle = "rgba(0, 0, 0, 0.42)";
+    ctx.beginPath();
+    ctx.ellipse(0, 0, drawW * 0.34, drawW * 0.34, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    [-0.1, 0.1].forEach((spot) => {
+      ctx.fillStyle = "rgba(255, 40, 40, 0.22)";
+      ctx.beginPath();
+      ctx.ellipse(viewW / 2 + spot * drawW, viewH - 10 + bob, drawW * 0.06, drawH * 0.03, 0, 0, Math.PI * 2);
+      ctx.fill();
+    });
 
     smoke.forEach((puff) => {
       ctx.fillStyle = `rgba(198, 206, 216, ${Math.max(0, puff.life) * 0.4})`;
       ctx.beginPath();
-      ctx.arc(x + puff.x, y - H * 0.22 + puff.y, puff.r, 0, Math.PI * 2);
+      ctx.arc(viewW / 2 + puff.x, viewH - drawH * 0.28 + puff.y + bob, puff.r, 0, Math.PI * 2);
       ctx.fill();
     });
 
     ctx.save();
-    ctx.translate(x, y);
-    ctx.transform(1, 0, pose * -0.2, 1, pose * W * 0.03, 0);
-
-    ctx.fillStyle = "#07080c";
-    roundRect(-W * 0.54, -H * 0.46, W * 0.16, H * 0.42, 5);
-    ctx.fill();
-    roundRect(W * 0.38, -H * 0.46, W * 0.16, H * 0.42, 5);
-    ctx.fill();
-
-    ctx.fillStyle = "#1f4fd8";
-    ctx.beginPath();
-    ctx.moveTo(-W * 0.46, -H * 0.08);
-    ctx.lineTo(-W * 0.38, -H * 0.58);
-    ctx.lineTo(W * 0.38, -H * 0.58);
-    ctx.lineTo(W * 0.46, -H * 0.08);
-    ctx.closePath();
-    ctx.fill();
-
-    if (pose !== 0) {
-      ctx.fillStyle = "#16368f";
-      ctx.beginPath();
-      if (pose < 0) {
-        ctx.moveTo(-W * 0.46, -H * 0.08);
-        ctx.lineTo(-W * 0.38, -H * 0.58);
-        ctx.lineTo(-W * 0.6, -H * 0.46);
-        ctx.lineTo(-W * 0.64, -H * 0.1);
-      } else {
-        ctx.moveTo(W * 0.46, -H * 0.08);
-        ctx.lineTo(W * 0.38, -H * 0.58);
-        ctx.lineTo(W * 0.6, -H * 0.46);
-        ctx.lineTo(W * 0.64, -H * 0.1);
-      }
-      ctx.closePath();
-      ctx.fill();
-    }
-
-    ctx.fillStyle = "#0c0e14";
-    ctx.beginPath();
-    ctx.moveTo(-W * 0.3 + pose * W * 0.04, -H * 0.58);
-    ctx.lineTo(-W * 0.16 + pose * W * 0.07, -H * 0.96);
-    ctx.lineTo(W * 0.16 + pose * W * 0.07, -H * 0.96);
-    ctx.lineTo(W * 0.3 + pose * W * 0.04, -H * 0.58);
-    ctx.closePath();
-    ctx.fill();
-
-    ctx.fillStyle = "#1c283c";
-    ctx.beginPath();
-    ctx.moveTo(-W * 0.22 + pose * W * 0.03, -H * 0.64);
-    ctx.lineTo(-W * 0.12 + pose * W * 0.05, -H * 0.88);
-    ctx.lineTo(W * 0.12 + pose * W * 0.05, -H * 0.88);
-    ctx.lineTo(W * 0.22 + pose * W * 0.03, -H * 0.64);
-    ctx.closePath();
-    ctx.fill();
-
-    ctx.fillStyle = "#07080c";
-    ctx.fillRect(-W * 0.36, -H * 0.7, W * 0.72, H * 0.07);
-
-    ctx.fillStyle = "#141820";
-    ctx.fillRect(-W * 0.46, -H * 0.24, W * 0.92, H * 0.16);
-
-    [-0.34, -0.22, 0.22, 0.34].forEach((spot) => {
-      const cx = spot * W;
-      const cy = -H * 0.36;
-      ctx.fillStyle = "rgba(255, 70, 70, 0.45)";
-      ctx.beginPath();
-      ctx.arc(cx, cy, W * 0.055, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = "#ff3a3a";
-      ctx.beginPath();
-      ctx.arc(cx, cy, W * 0.03, 0, Math.PI * 2);
-      ctx.fill();
-    });
-
-    ctx.fillStyle = "#3a404a";
-    ctx.beginPath();
-    ctx.arc(-W * 0.14, -H * 0.12, W * 0.028, 0, Math.PI * 2);
-    ctx.arc(W * 0.14, -H * 0.12, W * 0.028, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.translate(viewW / 2, viewH - 2 + bob);
+    ctx.rotate(yaw * 0.06);
+    ctx.drawImage(sprite, -drawW / 2, -drawH + 6, drawW, drawH);
     ctx.restore();
   }
 
