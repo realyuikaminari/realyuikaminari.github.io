@@ -582,255 +582,233 @@
     drawCar();
   }
 
-  let carSprites = null;
+  const CAR_EYE = [0, 0.92, -3.35];
+  const CAR_LIGHT = normalizeVec([-0.25, 0.86, -0.42]);
+  const carFaces = [];
+  const wheelLocal = [];
 
-  function paintPose(g, cssW, cssH, pose) {
-    const W = cssW * 0.7;
-    const H = W * 0.64;
-    const near = pose;
-    const fx = (x) => {
-      if (!pose) return x;
-      return x < 0 ? x * (pose > 0 ? 0.74 : 1.08) : x * (pose > 0 ? 1.08 : 0.74);
-    };
-    const poly = (pts) => {
-      g.beginPath();
-      pts.forEach((p, i) => (i ? g.lineTo(fx(p[0]), p[1]) : g.moveTo(fx(p[0]), p[1])));
-      g.closePath();
-    };
-    const tire = (x, y, w, h) => {
-      const grad = g.createLinearGradient(x, y, x + w, y);
-      grad.addColorStop(0, "#2a2e36");
-      grad.addColorStop(0.18, "#0c0e12");
-      grad.addColorStop(0.55, "#1a1e26");
-      grad.addColorStop(1, "#050608");
-      g.fillStyle = grad;
-      g.beginPath();
-      g.roundRect(x, y, w, h, 7);
-      g.fill();
-      g.fillStyle = "#07080c";
-      for (let i = 0; i < 5; i += 1) g.fillRect(x + 4, y + 5 + i * (h / 5.4), w - 8, Math.max(2, h * 0.08));
-      g.fillStyle = "rgba(255,255,255,0.14)";
-      g.fillRect(x + 2, y + 3, 3, h - 6);
-    };
-
-    g.translate(cssW / 2, cssH - 8);
-
-    tire(fx(-W * 0.56), -H * 0.5, W * 0.18, H * 0.46);
-    tire(fx(W * 0.38), -H * 0.5, W * 0.18, H * 0.46);
-    if (near) {
-      const side = near > 0 ? 1 : -1;
-      tire(fx(side * W * 0.5), -H * 0.78, W * 0.15, H * 0.34);
-    }
-
-    if (near) {
-      const side = near > 0 ? 1 : -1;
-      const flank = g.createLinearGradient(0, -H, 0, 0);
-      flank.addColorStop(0, "#6f93ff");
-      flank.addColorStop(0.45, "#1a3fbe");
-      flank.addColorStop(1, "#0c226e");
-      g.fillStyle = flank;
-      poly([
-        [side * W * 0.46, -H * 0.1],
-        [side * W * 0.36, -H * 0.62],
-        [side * W * 0.7, -H * 0.78],
-        [side * W * 0.78, -H * 0.28],
-      ]);
-      g.fill();
-      g.fillStyle = "#10244f";
-      poly([
-        [side * W * 0.4, -H * 0.58],
-        [side * W * 0.34, -H * 0.78],
-        [side * W * 0.62, -H * 0.9],
-        [side * W * 0.66, -H * 0.66],
-      ]);
-      g.fill();
-      g.strokeStyle = "rgba(0,0,0,0.45)";
-      g.lineWidth = 2;
-      g.beginPath();
-      g.moveTo(fx(side * W * 0.52), -H * 0.32);
-      g.lineTo(fx(side * W * 0.58), -H * 0.7);
-      g.stroke();
-    }
-
-    const body = g.createLinearGradient(0, -H * 1.05, 0, 0);
-    body.addColorStop(0, "#8eacff");
-    body.addColorStop(0.22, "#3d6ef0");
-    body.addColorStop(0.55, "#1f4fd8");
-    body.addColorStop(0.82, "#16348f");
-    body.addColorStop(1, "#0c2268");
-    g.fillStyle = body;
-    poly([
-      [-W * 0.48, -H * 0.12],
-      [-W * 0.4, -H * 0.64],
-      [W * 0.4, -H * 0.64],
-      [W * 0.48, -H * 0.12],
-    ]);
-    g.fill();
-    g.strokeStyle = "rgba(214, 228, 255, 0.55)";
-    g.lineWidth = Math.max(1.5, W * 0.012);
-    g.beginPath();
-    g.moveTo(fx(-W * 0.36), -H * 0.6);
-    g.lineTo(fx(W * 0.36), -H * 0.6);
-    g.stroke();
-
-    g.fillStyle = "#0b0e16";
-    poly([
-      [-W * 0.3, -H * 0.64],
-      [-W * 0.16, -H * 1.02],
-      [W * 0.16, -H * 1.02],
-      [W * 0.3, -H * 0.64],
-    ]);
-    g.fill();
-    const glass = g.createLinearGradient(0, -H * 1.02, 0, -H * 0.64);
-    glass.addColorStop(0, "#9eb6de");
-    glass.addColorStop(0.35, "#24344e");
-    glass.addColorStop(1, "#121a28");
-    g.fillStyle = glass;
-    poly([
-      [-W * 0.24, -H * 0.7],
-      [-W * 0.13, -H * 0.96],
-      [W * 0.13, -H * 0.96],
-      [W * 0.24, -H * 0.7],
-    ]);
-    g.fill();
-    g.strokeStyle = "rgba(255,255,255,0.55)";
-    g.lineWidth = Math.max(1.2, W * 0.01);
-    g.beginPath();
-    g.moveTo(fx(-W * 0.18), -H * 0.9);
-    g.lineTo(fx(W * 0.08), -H * 0.78);
-    g.stroke();
-    g.strokeStyle = "rgba(0,0,0,0.55)";
-    g.beginPath();
-    g.moveTo(fx(-W * 0.22), -H * 0.66);
-    g.lineTo(fx(-W * 0.12), -H * 0.98);
-    g.moveTo(fx(W * 0.22), -H * 0.66);
-    g.lineTo(fx(W * 0.12), -H * 0.98);
-    g.stroke();
-
-    g.fillStyle = "#1a1e28";
-    poly([
-      [-W * 0.34, -H * 0.78],
-      [-W * 0.3, -H * 0.7],
-      [W * 0.3, -H * 0.7],
-      [W * 0.34, -H * 0.78],
-    ]);
-    g.fill();
-    g.fillStyle = "#3a4252";
-    g.fillRect(fx(-W * 0.34), -H * 0.78, fx(W * 0.34) - fx(-W * 0.34), H * 0.035);
-    g.fillStyle = "#0a0c12";
-    g.fillRect(fx(-W * 0.22), -H * 0.7, W * 0.035, H * 0.1);
-    g.fillRect(fx(W * 0.18), -H * 0.7, W * 0.035, H * 0.1);
-
-    const bumper = g.createLinearGradient(0, -H * 0.34, 0, -H * 0.08);
-    bumper.addColorStop(0, "#2a3140");
-    bumper.addColorStop(0.4, "#12161e");
-    bumper.addColorStop(1, "#07090e");
-    g.fillStyle = bumper;
-    g.fillRect(fx(-W * 0.48), -H * 0.28, fx(W * 0.48) - fx(-W * 0.48), H * 0.18);
-    g.fillStyle = "#05070b";
-    g.fillRect(fx(-W * 0.3), -H * 0.16, fx(W * 0.3) - fx(-W * 0.3), H * 0.07);
-    g.strokeStyle = "rgba(255,255,255,0.16)";
-    g.lineWidth = 1.5;
-    g.beginPath();
-    g.moveTo(fx(-W * 0.4), -H * 0.3);
-    g.lineTo(fx(W * 0.4), -H * 0.3);
-    g.stroke();
-
-    [-0.36, -0.24, 0.24, 0.36].forEach((spot) => {
-      const cx = fx(spot * W);
-      const cy = -H * 0.4;
-      const r = W * 0.048;
-      const bloom = g.createRadialGradient(cx, cy, r * 0.2, cx, cy, r * 2.4);
-      bloom.addColorStop(0, "rgba(255,50,50,0.95)");
-      bloom.addColorStop(0.45, "rgba(255,20,20,0.35)");
-      bloom.addColorStop(1, "rgba(255,0,0,0)");
-      g.fillStyle = bloom;
-      g.beginPath();
-      g.arc(cx, cy, r * 2.4, 0, Math.PI * 2);
-      g.fill();
-      g.fillStyle = "#4a0000";
-      g.beginPath();
-      g.arc(cx, cy, r, 0, Math.PI * 2);
-      g.fill();
-      g.strokeStyle = "#7a1010";
-      g.lineWidth = Math.max(1, r * 0.28);
-      g.stroke();
-      g.fillStyle = "#ff2d2d";
-      g.beginPath();
-      g.arc(cx, cy, r * 0.62, 0, Math.PI * 2);
-      g.fill();
-      g.fillStyle = "#ffe4e4";
-      g.beginPath();
-      g.arc(cx - r * 0.22, cy - r * 0.22, r * 0.18, 0, Math.PI * 2);
-      g.fill();
-    });
-
-    g.fillStyle = "#4a515c";
-    g.beginPath();
-    g.arc(fx(-W * 0.16), -H * 0.1, W * 0.03, 0, Math.PI * 2);
-    g.arc(fx(W * 0.16), -H * 0.1, W * 0.03, 0, Math.PI * 2);
-    g.fill();
+  function vsub(a, b) { return [a[0] - b[0], a[1] - b[1], a[2] - b[2]]; }
+  function vdot(a, b) { return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]; }
+  function vlen(a) { return Math.hypot(a[0], a[1], a[2]) || 1; }
+  function normalizeVec(a) { const l = vlen(a); return [a[0] / l, a[1] / l, a[2] / l]; }
+  function faceNormal(pts) {
+    const a = vsub(pts[1], pts[0]);
+    const b = vsub(pts[2], pts[0]);
+    return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+  }
+  function centroid(pts) {
+    let x = 0, y = 0, z = 0;
+    pts.forEach((p) => { x += p[0]; y += p[1]; z += p[2]; });
+    const n = pts.length;
+    return [x / n, y / n, z / n];
   }
 
-  function ensureCarSprites() {
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const cssW = Math.max(200, Math.round(viewW * 0.38));
-    const cssH = Math.round(cssW * 0.8);
-    if (carSprites && carSprites.cssW === cssW && carSprites.dpr === dpr) return;
-    carSprites = {
-      cssW,
-      cssH,
-      dpr,
-      poses: [-1, 0, 1].map((pose) => {
-        const c = document.createElement("canvas");
-        c.width = Math.round(cssW * dpr);
-        c.height = Math.round(cssH * dpr);
-        const g = c.getContext("2d");
-        g.setTransform(dpr, 0, 0, dpr, 0, 0);
-        paintPose(g, cssW, cssH, pose);
-        return c;
-      }),
+  function addFace(list, pts, color, extra) {
+    const n = faceNormal(pts);
+    const c = centroid(pts);
+    const ref = extra && extra.out ? extra.out : c;
+    const ordered = vdot(n, vsub(c, ref)) < 0 ? pts.slice().reverse() : pts.slice();
+    list.push(Object.assign({ pts: ordered, color }, extra || {}));
+  }
+
+  function addBox(list, min, max, color, extra) {
+    const [x0, y0, z0] = min;
+    const [x1, y1, z1] = max;
+    const v = [
+      [x0, y0, z0], [x1, y0, z0], [x1, y1, z0], [x0, y1, z0],
+      [x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1],
+    ];
+    const center = [(x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2];
+    [[0, 3, 2, 1], [4, 5, 6, 7], [0, 1, 5, 4], [3, 7, 6, 2], [0, 4, 7, 3], [1, 2, 6, 5]]
+      .forEach((ids) => addFace(list, ids.map((i) => v[i]), color, Object.assign({ out: center }, extra)));
+  }
+
+  function addWheel(list, radius, width, sides) {
+    const h = width / 2;
+    const left = [];
+    const right = [];
+    for (let i = 0; i < sides; i += 1) {
+      const a = (i / sides) * Math.PI * 2;
+      const y = Math.cos(a) * radius;
+      const z = Math.sin(a) * radius;
+      left.push([-h, y, z]);
+      right.push([h, y, z]);
+    }
+    for (let i = 0; i < sides; i += 1) {
+      const j = (i + 1) % sides;
+      addFace(list, [left[i], right[i], right[j], left[j]], [18, 20, 26], { out: [0, 0, 0] });
+    }
+    addFace(list, left.slice().reverse(), [58, 64, 74], { out: [0, 0, 0], rim: true });
+    addFace(list, right.slice(), [58, 64, 74], { out: [0, 0, 0], rim: true });
+  }
+
+  const BODY = [31, 79, 216];
+  const BLACK = [12, 14, 20];
+  const BUMP = [22, 26, 34];
+  const GLASS = [28, 42, 64];
+  addBox(carFaces, [-0.50, 0.22, -0.98], [0.50, 0.48, 0.78], BODY);
+  addBox(carFaces, [-0.40, 0.20, 0.72], [0.40, 0.40, 1.08], BODY);
+  addBox(carFaces, [-0.50, 0.16, -1.14], [0.50, 0.34, -0.92], BUMP);
+  addBox(carFaces, [-0.32, 0.08, -1.08], [0.32, 0.18, -0.72], BLACK);
+  addBox(carFaces, [-0.46, 0.42, -0.98], [0.46, 0.52, -0.28], BODY);
+  addBox(carFaces, [-0.34, 0.48, -0.42], [0.34, 0.66, 0.40], BLACK);
+  addBox(carFaces, [-0.28, 0.74, -0.18], [0.28, 0.82, 0.30], BLACK);
+  addBox(carFaces, [-0.36, 0.48, -0.46], [-0.26, 0.76, -0.16], BLACK);
+  addBox(carFaces, [0.26, 0.48, -0.46], [0.36, 0.76, -0.16], BLACK);
+  addBox(carFaces, [-0.48, 0.78, -1.05], [0.48, 0.86, -0.78], BLACK);
+  addBox(carFaces, [-0.30, 0.52, -1.00], [-0.22, 0.80, -0.88], BLACK);
+  addBox(carFaces, [0.22, 0.52, -1.00], [0.30, 0.80, -0.88], BLACK);
+  [[-0.52, -0.64], [0.52, -0.64], [-0.50, 0.64], [0.50, 0.64]].forEach(([x, z]) => {
+    addBox(carFaces, [x - 0.14, 0.30, z - 0.20], [x + 0.14, 0.46, z + 0.20], BODY);
+  });
+  addFace(carFaces, [
+    [-0.26, 0.52, -0.40], [0.26, 0.52, -0.40], [0.16, 0.76, -0.16], [-0.16, 0.76, -0.16],
+  ], GLASS, { glass: true, out: [0, 0.55, 0] });
+  addFace(carFaces, [
+    [-0.26, 0.50, 0.38], [-0.14, 0.76, 0.20], [0.14, 0.76, 0.20], [0.26, 0.50, 0.38],
+  ], GLASS, { glass: true, out: [0, 0.55, 0] });
+  [-0.34, -0.22, 0.22, 0.34].forEach((x) => {
+    addFace(carFaces, [
+      [x - 0.045, 0.30, -1.15], [x + 0.045, 0.30, -1.15], [x + 0.045, 0.40, -1.15], [x - 0.045, 0.40, -1.15],
+    ], [255, 42, 42], { light: true, out: [0, 0.45, 0] });
+  });
+  addWheel(wheelLocal, 0.20, 0.18, 10);
+
+  function rotateCar(p, yaw, pitch, roll) {
+    let x = p[0];
+    let y = p[1];
+    let z = p[2];
+    const cp = Math.cos(pitch);
+    const sp = Math.sin(pitch);
+    const y1 = y * cp - z * sp;
+    const z1 = y * sp + z * cp;
+    const cr = Math.cos(roll);
+    const sr = Math.sin(roll);
+    const x2 = x * cr - y1 * sr;
+    const y2 = x * sr + y1 * cr;
+    const cy = Math.cos(yaw);
+    const sy = Math.sin(yaw);
+    return [x2 * cy + z1 * sy, y2, -x2 * sy + z1 * cy];
+  }
+
+  function steerPoint(p, angle, origin) {
+    const x = p[0] - origin[0];
+    const z = p[2] - origin[2];
+    const c = Math.cos(angle);
+    const s = Math.sin(angle);
+    return [origin[0] + x * c + z * s, p[1], origin[2] - x * s + z * c];
+  }
+
+  function projectCar(p) {
+    const depth = Math.max(0.45, p[2] - CAR_EYE[2]);
+    const f = (viewW * 0.62) / depth;
+    return {
+      x: viewW / 2 + p[0] * f,
+      y: viewH * 0.94 - p[1] * f * 0.78,
+      z: p[2],
     };
   }
 
   function drawCar() {
-    ensureCarSprites();
     const steer = (keys.right || touch.right ? 1 : 0) - (keys.left || touch.left ? 1 : 0);
-    const yaw = Math.max(-1, Math.min(1, driftAngle * 1.35 + steer * 0.55));
-    const pose = yaw > 0.18 ? 1 : yaw < -0.18 ? -1 : 0;
-    const bob = Math.sin(position / 80) * (0.6 + (speed / MAX_SPEED) * 2.2) * (offroad ? 1.8 : 1);
-    const sprite = carSprites.poses[pose + 1];
-    const drawW = carSprites.cssW;
-    const drawH = carSprites.cssH;
+    const yaw = Math.max(-0.61, Math.min(0.61, driftAngle * 0.95 + steer * 0.28));
+    const throttle = keys.up || touch.gas;
+    const braking = keys.down;
+    const pitch = (braking ? 0.07 : 0) - (throttle ? 0.05 : 0);
+    const roll = -yaw * 0.42;
+    const bob = Math.sin(position / 70) * (0.012 + (speed / MAX_SPEED) * 0.02) * (offroad ? 1.6 : 1);
+    const wheelSteer = steer * 0.42;
+    const wheels = [
+      { at: [-0.52, 0.2, 0.64], front: true },
+      { at: [0.52, 0.2, 0.64], front: true },
+      { at: [-0.52, 0.2, -0.64], front: false },
+      { at: [0.52, 0.2, -0.64], front: false },
+    ];
+    const queue = carFaces.map((face) => ({ pts: face.pts, color: face.color, glass: face.glass, light: face.light }));
+    wheels.forEach((wheel) => {
+      wheelLocal.forEach((face) => {
+        const pts = face.pts.map((pt) => {
+          const spun = wheel.front ? steerPoint(pt, wheelSteer, [0, 0, 0]) : pt;
+          return [spun[0] + wheel.at[0], spun[1] + wheel.at[1], spun[2] + wheel.at[2]];
+        });
+        queue.push({ pts, color: face.color, rim: face.rim });
+      });
+    });
+
+    const drawn = [];
+    const lights = [];
+    queue.forEach((face) => {
+      const world = face.pts.map((pt) => {
+        const moved = [pt[0], pt[1] + bob, pt[2]];
+        return rotateCar(moved, yaw, pitch, roll);
+      });
+      const nrm = normalizeVec(faceNormal(world));
+      const center = centroid(world);
+      const toEye = vsub(CAR_EYE, center);
+      if (vdot(nrm, toEye) <= 0.0001) return;
+      const lightAmt = Math.max(0, vdot(nrm, CAR_LIGHT));
+      const shade = face.light ? 1 : 0.42 + 0.58 * lightAmt;
+      const proj = world.map(projectCar);
+      drawn.push({ proj, color: face.color, shade, glass: face.glass, light: face.light, depth: center[2], center: projectCar(center) });
+      if (face.light) lights.push(projectCar(center));
+    });
+    drawn.sort((a, b) => b.depth - a.depth);
 
     ctx.save();
-    ctx.translate(viewW / 2, viewH - 8);
-    ctx.scale(1, 0.22);
-    ctx.fillStyle = "rgba(0, 0, 0, 0.42)";
+    ctx.translate(viewW / 2, viewH - 6);
+    ctx.rotate(yaw);
+    ctx.scale(1.05, 0.26);
+    ctx.fillStyle = "rgba(0, 0, 0, 0.48)";
     ctx.beginPath();
-    ctx.ellipse(0, 0, drawW * 0.34, drawW * 0.34, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, 0, viewW * 0.115, viewW * 0.115, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
 
-    [-0.1, 0.1].forEach((spot) => {
-      ctx.fillStyle = "rgba(255, 40, 40, 0.22)";
+    lights.forEach((light) => {
+      ctx.fillStyle = "rgba(255, 36, 36, 0.28)";
       ctx.beginPath();
-      ctx.ellipse(viewW / 2 + spot * drawW, viewH - 10 + bob, drawW * 0.06, drawH * 0.03, 0, 0, Math.PI * 2);
+      ctx.ellipse(light.x, viewH - 8, 16, 5, yaw * 0.3, 0, Math.PI * 2);
       ctx.fill();
     });
 
     smoke.forEach((puff) => {
       ctx.fillStyle = `rgba(198, 206, 216, ${Math.max(0, puff.life) * 0.4})`;
       ctx.beginPath();
-      ctx.arc(viewW / 2 + puff.x, viewH - drawH * 0.28 + puff.y + bob, puff.r, 0, Math.PI * 2);
+      ctx.arc(viewW / 2 + puff.x * Math.cos(yaw), viewH * 0.9 + puff.y, puff.r, 0, Math.PI * 2);
       ctx.fill();
     });
 
-    ctx.save();
-    ctx.translate(viewW / 2, viewH - 2 + bob);
-    ctx.rotate(yaw * 0.06);
-    ctx.drawImage(sprite, -drawW / 2, -drawH + 6, drawW, drawH);
-    ctx.restore();
+    drawn.forEach((face) => {
+      const [r, g, b] = face.color;
+      const k = face.glass ? 0.22 + face.shade * 0.35 : face.shade;
+      let rr = Math.min(255, r * k);
+      let gg = Math.min(255, g * k);
+      let bb = Math.min(255, b * k);
+      if (face.glass && face.shade > 0.72) {
+        rr = Math.min(255, rr + 70);
+        gg = Math.min(255, gg + 80);
+        bb = Math.min(255, bb + 90);
+      }
+      ctx.beginPath();
+      face.proj.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
+      ctx.closePath();
+      ctx.fillStyle = `rgb(${rr | 0}, ${gg | 0}, ${bb | 0})`;
+      ctx.fill();
+      ctx.strokeStyle = "rgba(6, 8, 14, 0.55)";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    });
+
+    lights.forEach((light) => {
+      const bloom = ctx.createRadialGradient(light.x, light.y, 1, light.x, light.y, 16);
+      bloom.addColorStop(0, "rgba(255, 60, 60, 0.85)");
+      bloom.addColorStop(0.45, "rgba(255, 20, 20, 0.28)");
+      bloom.addColorStop(1, "rgba(255, 0, 0, 0)");
+      ctx.fillStyle = bloom;
+      ctx.beginPath();
+      ctx.arc(light.x, light.y, 16, 0, Math.PI * 2);
+      ctx.fill();
+    });
   }
 
   function roundRect(x, y, w, h, r) {
