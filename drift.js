@@ -1,11 +1,11 @@
 /**
- * Night-run drift. Original canvas art, no external libraries.
- * Keys are handled only while the canvas (or its touch controls) is focused.
+ * Night-run drift, chase view.
+ * Pseudo-3D road, original canvas art, synthesized Web Audio. No libraries.
+ * Keys are handled only while the game is focused.
  */
 (() => {
   const root = document.getElementById("drift-game");
   if (!root) return;
-
   const canvas = root.querySelector(".drift-canvas");
   const startBtn = root.querySelector(".drift-start");
   const pauseEl = root.querySelector(".drift-pause");
@@ -13,26 +13,99 @@
   const scoreEl = root.querySelector('[data-drift="score"]');
   const comboEl = root.querySelector('[data-drift="combo"]');
   const bestEl = root.querySelector('[data-drift="best"]');
+  const speedEl = root.querySelector('[data-drift="speed"]');
+  const muteBtn = root.querySelector('[data-drift="mute"]');
   const touchButtons = [...root.querySelectorAll("[data-touch]")];
-
   if (!canvas || typeof canvas.getContext !== "function") return;
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
 
   const BEST_KEY = "yui-drift-best";
-  const ROAD_HALF = 128;
+  const MUTE_KEY = "yui-drift-mute";
+  const SEGMENT_LENGTH = 180;
+  const DRAW_DISTANCE = 130;
+  const ROAD_WIDTH = 1900;
+  const CAMERA_HEIGHT = 820;
+  const FOV = (100 * Math.PI) / 180;
+  const CAMERA_DEPTH = 1 / Math.tan(FOV / 2);
+  const PLAYER_Z = CAMERA_HEIGHT * CAMERA_DEPTH;
+  const MAX_SPEED = 4600;
+
+  const COLORS = {
+    skyTop: "#070b16",
+    skyMid: "#121a2e",
+    roadA: "#3a455c",
+    roadB: "#465270",
+    shoulderA: "#1a2230",
+    shoulderB: "#151c28",
+    grassA: "#0a0e0c",
+    grassB: "#101614",
+    edge: "#5b8cff",
+    lane: "rgba(232, 237, 245, 0.75)",
+    fog: "#10182a",
+  };
 
   const keys = { up: false, down: false, left: false, right: false, drift: false };
   const touch = { left: false, right: false, gas: false, drift: false };
 
-  const car = {
-    x: 0,
-    z: 0,
-    heading: 0,
-    vx: 0,
-    vz: 0,
-  };
+  const segments = [];
+  let lastY = 0;
 
+  function addSegment(curve, y) {
+    const n = segments.length;
+    segments.push({
+      index: n,
+      curve,
+      sprite: null,
+      p1: { world: { x: 0, y: lastY, z: n * SEGMENT_LENGTH }, camera: {}, screen: {} },
+      p2: { world: { x: 0, y, z: (n + 1) * SEGMENT_LENGTH }, camera: {}, screen: {} },
+    });
+    lastY = y;
+  }
+
+  function addRun(count, curve, hill) {
+    for (let i = 0; i < count; i += 1) {
+      const t = count <= 1 ? 1 : i / (count - 1);
+      const bend = curve * Math.sin(t * Math.PI);
+      addSegment(bend, lastY + hill / count);
+    }
+  }
+
+  function buildTrack() {
+    const pattern = [
+      [50, 0, 180],
+      [70, 3.2, 40],
+      [28, 0, -20],
+      [64, -3.6, 90],
+      [24, 0, 220],
+      [80, 4.4, -30],
+      [36, -1.2, -160],
+      [58, -4.1, 60],
+      [40, 2.4, 140],
+      [30, 0, -80],
+    ];
+    pattern.forEach(([count, curve, hill]) => addRun(count, curve, hill));
+    segments.forEach((segment, index) => {
+      if (index % 5 === 0) {
+        const side = index % 10 === 0 ? -1 : 1;
+        const roll = hash(index);
+        segment.sprite = {
+          side,
+          offset: 1.25 + roll * 0.55,
+          kind: roll > 0.62 ? "rock" : "tree",
+        };
+      }
+      if (index % 6 === 0) segment.rail = true;
+    });
+  }
+
+  buildTrack();
+  const trackLength = segments.length * SEGMENT_LENGTH;
+
+  let position = 0;
+  let playerX = 0;
+  let speed = 0;
+  let driftAngle = 0;
   let score = 0;
   let combo = 1;
   let best = 0;
@@ -45,75 +118,50 @@
   let lastTime = 0;
   let viewW = 640;
   let viewH = 360;
-  let scale = 1.35;
-
-  const skids = [];
+  let comboTier = 1;
+  let wasDrifting = false;
   const smoke = [];
-  let lastSkidL = null;
-  let lastSkidR = null;
+
+  let audioCtx = null;
+  let master = null;
+  let engineA = null;
+  let engineB = null;
+  let engineFilter = null;
+  let engineGain = null;
+  let squealGain = null;
+  let rumbleGain = null;
+  let shiftMix = 1;
+  let muted = false;
 
   try {
     best = Number(localStorage.getItem(BEST_KEY)) || 0;
+    muted = localStorage.getItem(MUTE_KEY) === "1";
   } catch {
     best = 0;
+    muted = false;
   }
-  if (bestEl) bestEl.textContent = formatScore(best);
+  paintHud();
+  paintMute();
 
-  function roadX(z) {
-    return (
-      Math.sin(z * 0.0031) * 420 +
-      Math.sin(z * 0.0074 + 1.1) * 110 +
-      Math.sin(z * 0.0017 + 0.4) * 160
-    );
-  }
-
-  function roadDx(z) {
-    return (
-      Math.cos(z * 0.0031) * 420 * 0.0031 +
-      Math.cos(z * 0.0074 + 1.1) * 110 * 0.0074 +
-      Math.cos(z * 0.0017 + 0.4) * 160 * 0.0017
-    );
-  }
-
-  function roadHeading(z) {
-    return Math.atan2(roadDx(z), 1);
-  }
-
-  function roadFrame(z) {
-    const slope = roadDx(z);
-    const len = Math.hypot(slope, 1) || 1;
-    return {
-      cx: roadX(z),
-      nx: 1 / len,
-      nz: -slope / len,
-    };
+  function hash(n) {
+    const x = Math.sin(n * 127.1 + 19.19) * 43758.5453;
+    return x - Math.floor(x);
   }
 
   function formatScore(value) {
-    return String(Math.floor(value));
+    return String(Math.max(0, Math.floor(value)));
   }
 
-  function resetCar() {
-    car.z = 0;
-    car.x = roadX(0);
-    car.heading = roadHeading(0);
-    car.vx = 0;
-    car.vz = 0;
-    score = 0;
-    combo = 1;
-    drifting = false;
-    offroad = false;
-    skids.length = 0;
-    smoke.length = 0;
-    lastSkidL = null;
-    lastSkidR = null;
-    paintHud();
+  function findSegment(z) {
+    const wrapped = ((z % trackLength) + trackLength) % trackLength;
+    return segments[Math.floor(wrapped / SEGMENT_LENGTH) % segments.length];
   }
 
   function paintHud() {
     if (scoreEl) scoreEl.textContent = formatScore(score);
     if (comboEl) comboEl.textContent = `x${combo.toFixed(1)}`;
     if (bestEl) bestEl.textContent = formatScore(best);
+    if (speedEl) speedEl.textContent = String(Math.round((speed / MAX_SPEED) * 220));
   }
 
   function rememberBest() {
@@ -126,6 +174,13 @@
     }
   }
 
+  function paintMute() {
+    if (!muteBtn) return;
+    muteBtn.classList.toggle("is-muted", muted);
+    muteBtn.setAttribute("aria-pressed", muted ? "true" : "false");
+    muteBtn.setAttribute("aria-label", muted ? "Unmute sound" : "Mute sound");
+  }
+
   function focused() {
     const active = document.activeElement;
     return active === canvas || root.contains(active);
@@ -135,7 +190,7 @@
     return started && !manualPause && !autoPause && !document.hidden;
   }
 
-  function input() {
+  function control() {
     const left = (keys.left || touch.left) && !(keys.right || touch.right);
     const right = (keys.right || touch.right) && !(keys.left || touch.left);
     return {
@@ -146,102 +201,215 @@
     };
   }
 
-  function step(dt) {
-    const ctl = input();
-    const hx = Math.sin(car.heading);
-    const hz = Math.cos(car.heading);
-    const rx = Math.cos(car.heading);
-    const rz = -Math.sin(car.heading);
+  function ensureAudio() {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx || audioCtx) return;
+    audioCtx = new Ctx();
+    master = audioCtx.createGain();
+    master.gain.value = muted ? 0 : 0.16;
+    master.connect(audioCtx.destination);
 
-    let forward = car.vx * hx + car.vz * hz;
-    let lateral = car.vx * rx + car.vz * rz;
-    const speed = Math.hypot(car.vx, car.vz);
+    engineA = audioCtx.createOscillator();
+    engineB = audioCtx.createOscillator();
+    engineA.type = "sawtooth";
+    engineB.type = "triangle";
+    engineA.frequency.value = 55;
+    engineB.frequency.value = 82;
+    engineFilter = audioCtx.createBiquadFilter();
+    engineFilter.type = "lowpass";
+    engineFilter.frequency.value = 420;
+    engineFilter.Q.value = 0.7;
+    engineGain = audioCtx.createGain();
+    engineGain.gain.value = 0.0001;
+    engineA.connect(engineFilter);
+    engineB.connect(engineFilter);
+    engineFilter.connect(engineGain);
+    engineGain.connect(master);
+    engineA.start();
+    engineB.start();
 
-    const frame = roadFrame(car.z);
-    const offset = (car.x - frame.cx) * frame.nx;
-    offroad = Math.abs(offset) > ROAD_HALF;
-
-    const hardSteer = Math.abs(ctl.steer) > 0.65 && speed > 150;
-    const wantDrift = (ctl.handbrake || hardSteer) && speed > 70;
-    const gripRate = wantDrift ? 1.35 : hardSteer ? 3.1 : 8.5;
-
-    if (ctl.throttle) forward += (offroad ? 90 : 260) * dt;
-    if (ctl.brake) forward -= 380 * dt;
-    if (ctl.handbrake) forward -= 140 * dt;
-    forward -= forward * (offroad ? 1.8 : 0.38) * dt;
-    const maxSpeed = offroad ? 150 : 430;
-    forward = Math.max(-70, Math.min(maxSpeed, forward));
-
-    lateral *= Math.exp(-gripRate * dt);
-
-    const steerRate = (wantDrift ? 2.35 : 1.65) * Math.min(1, Math.max(speed, 0) / 90);
-    car.heading += ctl.steer * steerRate * dt;
-
-    car.vx = hx * forward + rx * lateral;
-    car.vz = hz * forward + rz * lateral;
-    if (offroad) {
-      car.vx *= Math.exp(-2.4 * dt);
-      car.vz *= Math.exp(-2.4 * dt);
+    const length = audioCtx.sampleRate * 2;
+    const buffer = audioCtx.createBuffer(1, length, audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+    let last = 0;
+    for (let i = 0; i < length; i += 1) {
+      last = last * 0.96 + (Math.random() * 2 - 1) * 0.04;
+      data[i] = last + (Math.random() * 2 - 1) * 0.35;
     }
+    const noise = audioCtx.createBufferSource();
+    noise.buffer = buffer;
+    noise.loop = true;
+    noise.start();
 
-    car.x += car.vx * dt;
-    car.z += car.vz * dt;
+    const squealFilter = audioCtx.createBiquadFilter();
+    squealFilter.type = "bandpass";
+    squealFilter.frequency.value = 1600;
+    squealFilter.Q.value = 6;
+    squealGain = audioCtx.createGain();
+    squealGain.gain.value = 0.0001;
+    noise.connect(squealFilter);
+    squealFilter.connect(squealGain);
+    squealGain.connect(master);
 
-    const slip = Math.abs(lateral);
-    const sliding = slip > 46 && speed > 95 && !offroad;
-    drifting = sliding;
-    if (offroad || speed < 40) {
-      combo = 1;
-    } else if (sliding) {
-      combo = Math.min(8, combo + dt * 0.85);
-      score += slip * speed * 0.00012 * combo * dt * 60;
-      rememberBest();
-    } else if (slip < 22) {
-      combo = Math.max(1, combo - dt * 1.4);
-    }
-
-    const rear = 16;
-    const track = 8;
-    const lx = car.x - hx * rear + rx * track;
-    const lz = car.z - hz * rear + rz * track;
-    const rwx = car.x - hx * rear - rx * track;
-    const rwz = car.z - hz * rear - rz * track;
-    if (sliding) {
-      pushSkid(lastSkidL, lx, lz, 0.55);
-      pushSkid(lastSkidR, rwx, rwz, 0.55);
-      if (smoke.length < 80 && Math.random() < dt * 28) {
-        smoke.push({
-          x: (lx + rwx) / 2,
-          z: (lz + rwz) / 2,
-          vx: -hx * 12 + (Math.random() - 0.5) * 20,
-          vz: -hz * 12 + (Math.random() - 0.5) * 20,
-          life: 0.7 + Math.random() * 0.4,
-          max: 1,
-          r: 4 + Math.random() * 5,
-        });
-      }
-    }
-    lastSkidL = { x: lx, z: lz };
-    lastSkidR = { x: rwx, z: rwz };
-
-    for (let i = smoke.length - 1; i >= 0; i -= 1) {
-      const p = smoke[i];
-      p.life -= dt;
-      p.x += p.vx * dt;
-      p.z += p.vz * dt;
-      p.r += dt * 8;
-      if (p.life <= 0) smoke.splice(i, 1);
-    }
-    if (skids.length > 320) skids.splice(0, skids.length - 320);
-
-    paintHud();
+    const rumbleFilter = audioCtx.createBiquadFilter();
+    rumbleFilter.type = "lowpass";
+    rumbleFilter.frequency.value = 140;
+    rumbleGain = audioCtx.createGain();
+    rumbleGain.gain.value = 0.0001;
+    noise.connect(rumbleFilter);
+    rumbleFilter.connect(rumbleGain);
+    rumbleGain.connect(master);
   }
 
-  function pushSkid(prev, x, z, alpha) {
-    if (!prev) return;
-    const dist = Math.hypot(x - prev.x, z - prev.z);
-    if (dist < 3 || dist > 40) return;
-    skids.push({ x1: prev.x, z1: prev.z, x2: x, z2: z, a: alpha });
+  function setMaster() {
+    if (!master || !audioCtx) return;
+    master.gain.setTargetAtTime(muted ? 0.0001 : 0.16, audioCtx.currentTime, 0.03);
+  }
+
+  function holdAudio(run) {
+    if (!audioCtx) return;
+    if (!run || muted) {
+      if (audioCtx.state === "running") audioCtx.suspend();
+      return;
+    }
+    if (audioCtx.state === "suspended") audioCtx.resume();
+  }
+
+  function blip(freq, dur, gainValue, type) {
+    if (!audioCtx || muted || !master) return;
+    const now = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type || "sine";
+    osc.frequency.setValueAtTime(freq, now);
+    osc.frequency.exponentialRampToValueAtTime(Math.max(40, freq * 1.4), now + dur);
+    gain.gain.setValueAtTime(gainValue, now);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+    osc.connect(gain);
+    gain.connect(master);
+    osc.start(now);
+    osc.stop(now + dur + 0.02);
+  }
+
+  function updateAudio(speedPercent) {
+    if (!audioCtx || !engineA) return;
+    const gearSpan = speedPercent * 4;
+    const gear = Math.min(3, Math.floor(gearSpan));
+    const within = gearSpan - gear;
+    if (gear !== updateAudio.gear) {
+      if (gear > (updateAudio.gear ?? 0)) shiftMix = 0.62;
+      updateAudio.gear = gear;
+    }
+    shiftMix += (1 - shiftMix) * 0.08;
+    const pitch = (46 + within * 78 + gear * 10) * shiftMix;
+    const now = audioCtx.currentTime;
+    engineA.frequency.setTargetAtTime(pitch, now, 0.05);
+    engineB.frequency.setTargetAtTime(pitch * 1.5, now, 0.05);
+    engineFilter.frequency.setTargetAtTime(280 + speedPercent * 1100, now, 0.08);
+    engineGain.gain.setTargetAtTime(0.012 + speedPercent * 0.05, now, 0.08);
+    squealGain.gain.setTargetAtTime(drifting ? 0.045 + Math.abs(driftAngle) * 0.04 : 0.0001, now, 0.05);
+    rumbleGain.gain.setTargetAtTime(offroad ? 0.05 : 0.0001, now, 0.08);
+  }
+
+  function step(dt) {
+    const ctl = control();
+    const base = findSegment(position);
+    const speedPercent = Math.max(0, speed / MAX_SPEED);
+    const hardSteer = Math.abs(ctl.steer) > 0.62 && speedPercent > 0.32;
+    const wantDrift = (ctl.handbrake || hardSteer) && speedPercent > 0.22;
+
+    if (ctl.throttle) speed += (offroad ? 900 : 3200) * dt;
+    if (ctl.brake) speed -= 3200 * dt;
+    if (ctl.handbrake) speed -= 900 * dt;
+    speed -= speed * (offroad ? 1.7 : 0.16) * dt;
+    speed = Math.max(0, Math.min(offroad ? MAX_SPEED * 0.38 : MAX_SPEED, speed));
+
+    position = (position + speed * dt) % trackLength;
+
+    const dx = dt * 2 * Math.max(0.25, speedPercent);
+    playerX -= dx * speedPercent * base.curve * 0.32;
+    playerX += dx * ctl.steer * (wantDrift ? 1.2 : 1.05);
+
+    if (wantDrift) driftAngle += (ctl.steer * 0.85 - driftAngle * 0.35) * dt * 3.2;
+    else driftAngle += (0 - driftAngle) * dt * 3.4;
+    driftAngle = Math.max(-0.85, Math.min(0.85, driftAngle));
+    if (wantDrift) playerX += driftAngle * dt * 0.65;
+
+    offroad = Math.abs(playerX) > 1;
+    if (offroad) {
+      const sign = playerX < 0 ? -1 : 1;
+      playerX = sign * Math.min(Math.abs(playerX), 1.45);
+      combo = 1;
+      comboTier = 1;
+    }
+
+    const sliding = wantDrift && Math.abs(driftAngle) > 0.12 && speedPercent > 0.28 && !offroad;
+    drifting = sliding;
+    if (sliding) {
+      combo = Math.min(8, combo + dt * 0.9);
+      score += (Math.abs(driftAngle) * 40 + speedPercent * 18) * combo * dt;
+      rememberBest();
+      const tier = Math.floor(combo);
+      if (tier > comboTier) {
+        comboTier = tier;
+        blip(520 + tier * 70, 0.18, 0.05, "sine");
+      }
+    } else if (!offroad) {
+      combo = Math.max(1, combo - dt * 0.7);
+      if (combo < comboTier) comboTier = Math.max(1, Math.floor(combo));
+    }
+
+    if (wasDrifting && !sliding && comboTier >= 2 && !offroad) {
+      blip(340, 0.28, 0.04, "triangle");
+    }
+    wasDrifting = sliding;
+
+    if (smoke.length < 48 && sliding && Math.random() < dt * 36) {
+      smoke.push({
+        x: (Math.random() - 0.5) * 18,
+        y: 0,
+        vx: (Math.random() - 0.5) * 18 - driftAngle * 30,
+        vy: 18 + Math.random() * 20,
+        life: 0.55 + Math.random() * 0.35,
+        r: 4 + Math.random() * 5,
+      });
+    }
+    for (let i = smoke.length - 1; i >= 0; i -= 1) {
+      const puff = smoke[i];
+      puff.life -= dt;
+      puff.x += puff.vx * dt;
+      puff.y += puff.vy * dt;
+      puff.r += dt * 14;
+      if (puff.life <= 0) smoke.splice(i, 1);
+    }
+
+    paintHud();
+    updateAudio(speedPercent);
+  }
+
+  function project(point, camX, camY, camZ, zFix) {
+    point.camera.x = point.world.x - camX;
+    point.camera.y = point.world.y - camY;
+    point.camera.z = point.world.z + zFix - camZ;
+    if (point.camera.z < 8) {
+      point.screen.scale = 0;
+      return;
+    }
+    const scale = CAMERA_DEPTH / point.camera.z;
+    point.screen.scale = scale;
+    point.screen.x = viewW / 2 + scale * point.camera.x * viewW / 2;
+    point.screen.y = viewH * 0.46 - scale * point.camera.y * viewH / 2;
+    point.screen.w = scale * ROAD_WIDTH * viewW / 2;
+  }
+
+  function trap(x1, y1, w1, x2, y2, w2) {
+    ctx.beginPath();
+    ctx.moveTo(x1 - w1, y1);
+    ctx.lineTo(x1 + w1, y1);
+    ctx.lineTo(x2 + w2, y2);
+    ctx.lineTo(x2 - w2, y2);
+    ctx.closePath();
+    ctx.fill();
   }
 
   function resize() {
@@ -253,195 +421,195 @@
     canvas.width = Math.round(viewW * dpr);
     canvas.height = Math.round(viewH * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    scale = Math.max(1.15, Math.min(viewW, viewH) / 430);
   }
 
-  function worldToScreen(wx, wz) {
-    const dx = wx - car.x;
-    const dz = wz - car.z;
-    const s = Math.sin(car.heading);
-    const c = Math.cos(car.heading);
-    const forward = dx * s + dz * c;
-    const right = dx * c - dz * s;
-    return [viewW * 0.5 + right * scale, viewH * 0.72 - forward * scale];
-  }
-
-  function draw() {
-    ctx.clearRect(0, 0, viewW, viewH);
+  function drawSky(parallax) {
     const sky = ctx.createLinearGradient(0, 0, 0, viewH);
-    sky.addColorStop(0, "#10182a");
-    sky.addColorStop(0.45, "#0b0e16");
-    sky.addColorStop(1, "#07090c");
+    sky.addColorStop(0, COLORS.skyTop);
+    sky.addColorStop(0.55, COLORS.skyMid);
+    sky.addColorStop(1, COLORS.fog);
     ctx.fillStyle = sky;
     ctx.fillRect(0, 0, viewW, viewH);
 
-    ctx.fillStyle = "#0c1210";
-    ctx.fillRect(0, viewH * 0.18, viewW, viewH);
-
-    drawScenery();
-    drawRoad();
-    drawSkids();
-    drawSmoke();
-    drawHeadlights();
-    drawCar();
-
-    if (offroad) {
-      ctx.fillStyle = "rgba(40, 18, 12, 0.18)";
-      ctx.fillRect(0, 0, viewW, viewH);
-    }
-  }
-
-  function drawScenery() {
-    const start = Math.floor((car.z - 260) / 56) * 56;
-    const end = car.z + 980;
-    for (let z = start; z < end; z += 56) {
-      const frame = roadFrame(z);
-      const n = hash(z);
-      const side = n > 0.5 ? 1 : -1;
-      const dist = ROAD_HALF + 36 + hash(z + 3) * 90;
-      const wx = frame.cx + frame.nx * dist * side;
-      const wz = z + frame.nz * dist * side;
-      const [sx, sy] = worldToScreen(wx, wz);
-      if (sx < -40 || sx > viewW + 40 || sy < -40 || sy > viewH + 40) continue;
-      if (n > 0.42) {
-        ctx.fillStyle = "#1a1e24";
-        ctx.beginPath();
-        ctx.ellipse(sx, sy + 6, 9 + n * 6, 5, 0, 0, Math.PI * 2);
-        ctx.fill();
-      } else {
-        ctx.fillStyle = "#102018";
-        ctx.beginPath();
-        ctx.moveTo(sx, sy - 16);
-        ctx.lineTo(sx - 8, sy + 8);
-        ctx.lineTo(sx + 8, sy + 8);
-        ctx.fill();
-        ctx.fillStyle = "#24180f";
-        ctx.fillRect(sx - 1.5, sy + 6, 3, 7);
-      }
-    }
-  }
-
-  function drawRoad() {
-    const step = 18;
-    const start = car.z - 220;
-    const end = car.z + 860;
-    const left = [];
-    const right = [];
-    for (let z = start; z <= end; z += step) {
-      const frame = roadFrame(z);
-      left.push(worldToScreen(frame.cx - frame.nx * ROAD_HALF, z - frame.nz * ROAD_HALF));
-      right.push(worldToScreen(frame.cx + frame.nx * ROAD_HALF, z + frame.nz * ROAD_HALF));
-    }
-
+    const moonX = viewW * 0.72 + parallax * 0.35;
+    const moon = ctx.createRadialGradient(moonX, viewH * 0.16, 4, moonX, viewH * 0.16, 36);
+    moon.addColorStop(0, "rgba(232, 238, 255, 0.95)");
+    moon.addColorStop(1, "rgba(232, 238, 255, 0)");
+    ctx.fillStyle = moon;
     ctx.beginPath();
-    if (!left.length) return;
-    ctx.moveTo(left[0][0], left[0][1]);
-    for (let i = 1; i < left.length; i += 1) ctx.lineTo(left[i][0], left[i][1]);
-    for (let i = right.length - 1; i >= 0; i -= 1) ctx.lineTo(right[i][0], right[i][1]);
+    ctx.arc(moonX, viewH * 0.16, 34, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "rgba(232, 237, 245, 0.8)";
+    for (let i = 0; i < 48; i += 1) {
+      const sx = (hash(i) * viewW + parallax * (0.15 + hash(i + 4) * 0.4) + viewW) % viewW;
+      const sy = hash(i + 9) * viewH * 0.38;
+      ctx.fillRect(sx, sy, hash(i + 2) > 0.8 ? 2 : 1, 1);
+    }
+
+    for (let layer = 0; layer < 3; layer += 1) {
+      const shift = parallax * (0.5 + layer * 0.45);
+    const horizon = viewH * 0.46;
+    ctx.beginPath();
+    ctx.moveTo(0, horizon);
+    for (let x = 0; x <= viewW; x += 28) {
+      const h = 26 + layer * 14 + Math.sin((x + shift) * 0.012 + layer) * (18 + layer * 6);
+      ctx.lineTo(x, horizon - h - layer * 16);
+    }
+    ctx.lineTo(viewW, horizon);
     ctx.closePath();
-    ctx.fillStyle = "#141820";
+    ctx.fillStyle = `rgba(${12 + layer * 10}, ${18 + layer * 8}, ${32 + layer * 12}, 0.95)`;
     ctx.fill();
-
-    ctx.lineWidth = 5;
-    ctx.strokeStyle = "rgba(77, 124, 255, 0.85)";
-    ctx.beginPath();
-    left.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
-    ctx.stroke();
-    ctx.beginPath();
-    right.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
-    ctx.stroke();
-
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = "rgba(232, 237, 245, 0.8)";
-    ctx.setLineDash([10, 14]);
-    ctx.beginPath();
-    for (let i = 0; i < left.length; i += 2) {
-      const mx = (left[i][0] + right[i][0]) / 2;
-      const my = (left[i][1] + right[i][1]) / 2;
-      if (i === 0) ctx.moveTo(mx, my);
-      else ctx.lineTo(mx, my);
     }
-    ctx.stroke();
-    ctx.setLineDash([]);
+  }
 
-    ctx.strokeStyle = "#2a3344";
-    ctx.lineWidth = 3;
-    for (let z = Math.floor(start / 40) * 40; z < end; z += 40) {
-      const frame = roadFrame(z);
-      for (const side of [-1, 1]) {
-        const inner = ROAD_HALF + 10;
-        const outer = ROAD_HALF + 18;
-        const a = worldToScreen(frame.cx + frame.nx * inner * side, z + frame.nz * inner * side);
-        const b = worldToScreen(frame.cx + frame.nx * outer * side, z + frame.nz * outer * side);
-        ctx.beginPath();
-        ctx.moveTo(a[0], a[1]);
-        ctx.lineTo(b[0], b[1]);
-        ctx.stroke();
+  function drawSprite(segment, sprite) {
+    if (!sprite || segment.p1.screen.scale <= 0) return;
+    const scale = segment.p1.screen.scale;
+    const roadW = segment.p1.screen.w;
+    const sx = segment.p1.screen.x + sprite.offset * sprite.side * roadW;
+    const sy = segment.p1.screen.y;
+    const h = roadW * (sprite.kind === "rock" ? 0.55 : 1.15);
+    if (h < 4 || h > 72 || sy > viewH + 8 || sy < -20) return;
+    if (sprite.kind === "rock") {
+      ctx.fillStyle = "#1c212b";
+      ctx.beginPath();
+      ctx.ellipse(sx, sy, h * 0.7, h * 0.4, 0, 0, Math.PI * 2);
+      ctx.fill();
+      return;
+    }
+    ctx.fillStyle = "#142018";
+    ctx.beginPath();
+    ctx.moveTo(sx, sy - h);
+    ctx.lineTo(sx - h * 0.38, sy);
+    ctx.lineTo(sx + h * 0.38, sy);
+    ctx.fill();
+    ctx.fillStyle = "#2a2118";
+    ctx.fillRect(sx - h * 0.06, sy - h * 0.08, h * 0.12, h * 0.22);
+  }
+
+  function drawRail(segment, side) {
+    if (segment.p1.screen.scale <= 0) return;
+    const roadW = segment.p1.screen.w;
+    const sx = segment.p1.screen.x + side * roadW * 1.08;
+    const sy = segment.p1.screen.y;
+    const h = roadW * 0.22;
+    if (h < 3 || h > 70) return;
+    ctx.fillStyle = "#2c3648";
+    ctx.fillRect(sx - 1, sy - h, 2, h);
+  }
+
+  function render() {
+    const base = findSegment(position);
+    const percent = (position % SEGMENT_LENGTH) / SEGMENT_LENGTH;
+    const playerY = base.p1.world.y + (base.p2.world.y - base.p1.world.y) * percent;
+    let shift = 0;
+    let dShift = -base.curve * percent;
+    let maxY = viewH;
+    const sprites = [];
+
+    ctx.clearRect(0, 0, viewW, viewH);
+    drawSky(base.curve * 80 + playerX * 40);
+    ctx.fillStyle = COLORS.grassA;
+    ctx.fillRect(0, viewH * 0.42, viewW, viewH);
+
+    const camZ = position - PLAYER_Z;
+    for (let n = 0; n < DRAW_DISTANCE; n += 1) {
+      const index = (base.index + n) % segments.length;
+      const segment = segments[index];
+      const looped = index < base.index;
+      const zFix = looped ? trackLength : 0;
+      const camX = playerX * ROAD_WIDTH + shift;
+      const camXFar = camX + dShift;
+      project(segment.p1, camX, playerY + CAMERA_HEIGHT, camZ, zFix);
+      project(segment.p2, camXFar, playerY + CAMERA_HEIGHT, camZ, zFix);
+      shift += dShift;
+      dShift += segment.curve;
+
+      const s1 = segment.p1.screen;
+      const s2 = segment.p2.screen;
+      if (!s1.scale || !s2.scale || s2.y >= s1.y || s2.y >= maxY) continue;
+
+      const fog = Math.pow(n / DRAW_DISTANCE, 1.6);
+      ctx.globalAlpha = 1 - fog * 0.72;
+      const alt = Math.floor(index / 3) % 2 === 0;
+      ctx.fillStyle = alt ? COLORS.shoulderA : COLORS.shoulderB;
+      trap(s1.x, s1.y, s1.w * 1.22, s2.x, s2.y, s2.w * 1.22);
+      ctx.fillStyle = COLORS.edge;
+      trap(s1.x, s1.y, s1.w * 1.06, s2.x, s2.y, s2.w * 1.06);
+      ctx.fillStyle = alt ? COLORS.roadA : COLORS.roadB;
+      trap(s1.x, s1.y, s1.w * 0.96, s2.x, s2.y, s2.w * 0.96);
+      if (index % 5 === 0) {
+        ctx.fillStyle = COLORS.lane;
+        trap(s1.x, s1.y, s1.w * 0.03, s2.x, s2.y, s2.w * 0.03);
+      }
+      ctx.globalAlpha = 1;
+      maxY = s1.y;
+      if (segment.sprite) sprites.push({ kind: "sprite", segment });
+      if (segment.rail) sprites.push({ kind: "rail", segment });
+    }
+
+    for (let i = sprites.length - 1; i >= 0; i -= 1) {
+      const item = sprites[i];
+      if (item.kind === "rail") {
+        drawRail(item.segment, -1);
+        drawRail(item.segment, 1);
+      } else {
+        drawSprite(item.segment, item.segment.sprite);
       }
     }
-  }
 
-  function drawSkids() {
-    ctx.lineWidth = 3;
-    ctx.lineCap = "round";
-    skids.forEach((mark) => {
-      const a = worldToScreen(mark.x1, mark.z1);
-      const b = worldToScreen(mark.x2, mark.z2);
-      ctx.strokeStyle = `rgba(186, 196, 214, ${mark.a})`;
-      ctx.beginPath();
-      ctx.moveTo(a[0], a[1]);
-      ctx.lineTo(b[0], b[1]);
-      ctx.stroke();
-      mark.a *= 0.997;
-    });
-  }
-
-  function drawSmoke() {
-    smoke.forEach((p) => {
-      const [sx, sy] = worldToScreen(p.x, p.z);
-      ctx.fillStyle = `rgba(180, 188, 200, ${Math.max(0, p.life) * 0.35})`;
-      ctx.beginPath();
-      ctx.arc(sx, sy, p.r, 0, Math.PI * 2);
-      ctx.fill();
-    });
-  }
-
-  function drawHeadlights() {
-    const hx = Math.sin(car.heading);
-    const hz = Math.cos(car.heading);
-    const [sx, sy] = worldToScreen(car.x + hx * 18, car.z + hz * 18);
-    const grad = ctx.createRadialGradient(sx, sy, 4, sx, sy, 90 * scale);
-    grad.addColorStop(0, "rgba(210, 226, 255, 0.45)");
-    grad.addColorStop(1, "rgba(31, 79, 216, 0)");
-    ctx.fillStyle = grad;
-    ctx.beginPath();
-    ctx.arc(sx, sy, 90 * scale, 0, Math.PI * 2);
-    ctx.fill();
+    drawCar();
   }
 
   function drawCar() {
-    const [sx, sy] = worldToScreen(car.x, car.z);
+    const bob = Math.sin(position / 90) * (offroad ? 2.2 : 0.6);
+    const x = viewW / 2 + driftAngle * viewW * 0.06;
+    const y = viewH * 0.84 + bob;
+    const yaw = driftAngle * 0.7 + (keys.left || touch.left ? -0.08 : 0) + (keys.right || touch.right ? 0.08 : 0);
+
     ctx.save();
-    ctx.translate(sx, sy);
-    ctx.rotate(0);
-    ctx.fillStyle = "#0c0e12";
-    ctx.fillRect(-16, -10, 7, 14);
-    ctx.fillRect(9, -10, 7, 14);
-    ctx.fillRect(-16, 12, 7, 14);
-    ctx.fillRect(9, 12, 7, 14);
+    ctx.translate(x, y - 36);
+    ctx.rotate(yaw);
+    const beam = ctx.createLinearGradient(0, 0, 0, -viewH * 0.28);
+    beam.addColorStop(0, "rgba(214, 228, 255, 0.38)");
+    beam.addColorStop(1, "rgba(31, 79, 216, 0)");
+    ctx.fillStyle = beam;
+    ctx.beginPath();
+    ctx.moveTo(-8, 0);
+    ctx.lineTo(8, 0);
+    ctx.lineTo(36, -viewH * 0.26);
+    ctx.lineTo(-36, -viewH * 0.26);
+    ctx.fill();
+    ctx.restore();
+
+    smoke.forEach((puff) => {
+      ctx.fillStyle = `rgba(190, 198, 210, ${Math.max(0, puff.life) * 0.35})`;
+      ctx.beginPath();
+      ctx.arc(x + puff.x, y + 16 + puff.y, puff.r, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(yaw);
+    ctx.fillStyle = "#07080c";
+    ctx.fillRect(-28, -6, 10, 22);
+    ctx.fillRect(18, -6, 10, 22);
     ctx.fillStyle = "#1f4fd8";
-    roundRect(-13, -22, 26, 46, 7);
+    roundRect(-24, -20, 48, 40, 8);
     ctx.fill();
-    ctx.fillStyle = "#12141a";
-    roundRect(-9, -8, 18, 16, 4);
+    ctx.fillStyle = "#101218";
+    roundRect(-16, -16, 32, 16, 4);
     ctx.fill();
-    ctx.fillStyle = "#d7e4ff";
-    ctx.fillRect(-9, -20, 5, 4);
-    ctx.fillRect(4, -20, 5, 4);
-    if (drifting) {
-      ctx.fillStyle = "rgba(77, 124, 255, 0.8)";
-      ctx.fillRect(-1, 22, 2, 12);
-    }
+    ctx.fillStyle = "#c8d4ea";
+    roundRect(-14, -6, 28, 10, 2);
+    ctx.fill();
+    ctx.fillStyle = "#e23a3a";
+    ctx.fillRect(-18, -2, 8, 4);
+    ctx.fillRect(10, -2, 8, 4);
+    ctx.fillStyle = "#0c0e12";
+    ctx.fillRect(-22, -22, 44, 4);
     ctx.restore();
   }
 
@@ -455,20 +623,15 @@
     ctx.closePath();
   }
 
-  function hash(n) {
-    const x = Math.sin(n * 127.1 + 311.7) * 43758.5453;
-    return x - Math.floor(x);
-  }
-
   function frame(now) {
     if (!driving()) {
       raf = 0;
       return;
     }
-    const dt = Math.min(0.05, (now - lastTime) / 1000 || 0.016);
+    const dt = Math.min(0.033, (now - lastTime) / 1000 || 0.016);
     lastTime = now;
     step(dt);
-    draw();
+    render();
     raf = requestAnimationFrame(frame);
   }
 
@@ -478,15 +641,32 @@
     raf = requestAnimationFrame(frame);
   }
 
+  function resetRun() {
+    position = 0;
+    playerX = 0;
+    speed = 0;
+    driftAngle = 0;
+    score = 0;
+    combo = 1;
+    comboTier = 1;
+    drifting = false;
+    offroad = false;
+    wasDrifting = false;
+    smoke.length = 0;
+    paintHud();
+  }
+
   function showPause(on) {
-    if (!pauseEl) return;
-    pauseEl.hidden = !on;
+    if (pauseEl) pauseEl.hidden = !on;
   }
 
   function start() {
+    ensureAudio();
+    if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
+    setMaster();
     if (!started) {
       started = true;
-      resetCar();
+      resetRun();
       root.classList.add("is-running");
       canvas.hidden = false;
       if (hud) hud.hidden = false;
@@ -496,8 +676,8 @@
     manualPause = false;
     showPause(false);
     canvas.focus({ preventScroll: true });
+    holdAudio(true);
     loop();
-    draw();
   }
 
   function togglePause() {
@@ -507,17 +687,36 @@
     if (manualPause) {
       if (raf) cancelAnimationFrame(raf);
       raf = 0;
-      draw();
+      holdAudio(false);
+      render();
     } else {
+      holdAudio(true);
       loop();
     }
+  }
+
+  function toggleMute() {
+    muted = !muted;
+    try {
+      localStorage.setItem(MUTE_KEY, muted ? "1" : "0");
+    } catch {
+      /* ignore */
+    }
+    paintMute();
+    setMaster();
+    if (!muted && driving()) holdAudio(true);
   }
 
   startBtn?.addEventListener("click", start);
   pauseEl?.addEventListener("click", () => {
     if (manualPause) start();
   });
-
+  muteBtn?.addEventListener("click", (event) => {
+    event.stopPropagation();
+    if (!started) return;
+    ensureAudio();
+    toggleMute();
+  });
   canvas.addEventListener("pointerdown", () => {
     if (started) canvas.focus({ preventScroll: true });
   });
@@ -533,15 +732,19 @@
         togglePause();
         return;
       }
+      if (event.code === "KeyM") {
+        event.preventDefault();
+        ensureAudio();
+        toggleMute();
+        return;
+      }
       if (!driving() && manualPause) return;
       setKey(event.code, true);
     },
     true
   );
 
-  window.addEventListener("keyup", (event) => {
-    setKey(event.code, false);
-  });
+  window.addEventListener("keyup", (event) => setKey(event.code, false));
 
   function setKey(code, down) {
     if (code === "ArrowUp" || code === "KeyW") keys.up = down;
@@ -556,8 +759,7 @@
     const press = (event) => {
       event.preventDefault();
       button.setPointerCapture?.(event.pointerId);
-      if (started && manualPause) start();
-      if (!started) start();
+      if (!started || manualPause) start();
       button.classList.add("is-held");
       if (name === "left") touch.left = true;
       if (name === "right") touch.right = true;
@@ -581,7 +783,9 @@
     if (document.hidden) {
       if (raf) cancelAnimationFrame(raf);
       raf = 0;
-    } else {
+      holdAudio(false);
+    } else if (!manualPause) {
+      holdAudio(true);
       loop();
     }
   });
@@ -593,7 +797,9 @@
         if (autoPause) {
           if (raf) cancelAnimationFrame(raf);
           raf = 0;
-        } else {
+          holdAudio(false);
+        } else if (!manualPause) {
+          holdAudio(driving());
           loop();
         }
       },
@@ -604,7 +810,10 @@
 
   const play = canvas.parentElement;
   if (window.ResizeObserver && play) {
-    const ro = new ResizeObserver(() => resize());
+    const ro = new ResizeObserver(() => {
+      resize();
+      if (started) render();
+    });
     ro.observe(play);
   } else {
     window.addEventListener("resize", resize);

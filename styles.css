@@ -1141,6 +1141,28 @@ body.lightbox-open { overflow: hidden; }
 
 .drift-hud [data-drift="combo"] { color: var(--blue-soft); }
 
+.drift-mute {
+  margin-left: auto;
+  pointer-events: auto;
+  width: 36px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(8, 10, 16, 0.72);
+  color: var(--blue-soft);
+  cursor: pointer;
+  padding: 0;
+}
+
+.drift-mute .drift-mute-slash { display: none; }
+.drift-mute.is-muted { color: var(--steel); }
+.drift-mute.is-muted .drift-mute-wave { display: none; }
+.drift-mute.is-muted .drift-mute-slash { display: block; }
+
+.drift-mute:hover { color: var(--white); border-color: var(--blue-soft); }
+
 .drift-start,
 .drift-pause {
   position: absolute;

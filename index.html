@@ -21,7 +21,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+JP:wght@400;500;700;900&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=11">
+  <link rel="stylesheet" href="styles.css?v=12">
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
@@ -199,6 +199,14 @@
                 <span>Score <b data-drift="score">0</b></span>
                 <span>Combo <b data-drift="combo">x1</b></span>
                 <span>Best <b data-drift="best">0</b></span>
+                <span>Speed <b data-drift="speed">0</b></span>
+                <button class="drift-mute" type="button" data-drift="mute" aria-pressed="false" aria-label="Mute sound">
+                  <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+                    <path fill="currentColor" d="M4 9h3.2L12 5.2v13.6L7.2 15H4z"/>
+                    <path class="drift-mute-wave" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" d="M15.5 9.2a4.2 4.2 0 0 1 0 5.6M17.8 7a7 7 0 0 1 0 10"/>
+                    <path class="drift-mute-slash" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" d="M16 8.5l5 7"/>
+                  </svg>
+                </button>
               </div>
               <button class="drift-start" type="button">
                 <span class="drift-start-title">Click / tap to drift</span>
@@ -352,8 +360,8 @@
     </div>
   </footer>
 
-  <script src="games.js?v=11"></script>
-  <script src="main.js?v=11"></script>
-  <script src="drift.js?v=11" defer></script>
+  <script src="games.js?v=12"></script>
+  <script src="main.js?v=12"></script>
+  <script src="drift.js?v=12" defer></script>
 </body>
 </html>
