@@ -619,9 +619,9 @@ import * as THREE from "./vendor/three.module.min.js";
     renderer.toneMappingExposure = 1.15;
 
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(34, 1, 0.1, 40);
-    camera.position.set(0, 1.15, -5.15);
-    camera.lookAt(0, 0.48, 0.15);
+    const camera = new THREE.PerspectiveCamera(28, 1, 0.1, 40);
+    camera.position.set(0, 1.22, -7.15);
+    camera.lookAt(0, 0.42, 0.15);
 
     scene.add(new THREE.HemisphereLight(0xb7c7ea, 0x14120e, 0.72));
     const moon = new THREE.DirectionalLight(0xe7eeff, 1.55);
@@ -642,11 +642,11 @@ import * as THREE from "./vendor/three.module.min.js";
       roughness: 0.42,
     });
     const glassMat = new THREE.MeshStandardMaterial({
-      color: 0x101820,
-      metalness: 0.15,
-      roughness: 0.08,
+      color: 0x1a2740,
+      metalness: 0.2,
+      roughness: 0.06,
       transparent: true,
-      opacity: 0.72,
+      opacity: 0.88,
     });
     const tireMat = new THREE.MeshStandardMaterial({ color: 0x141414, roughness: 0.92, metalness: 0.05 });
     const rimMat = new THREE.MeshStandardMaterial({ color: 0x8d949e, metalness: 0.75, roughness: 0.32 });
@@ -675,41 +675,39 @@ import * as THREE from "./vendor/three.module.min.js";
     scene.add(car);
 
     const body = new THREE.Mesh(extrude([
-      [0.00, 0.18],
+      [0.00, 0.20],
       [0.00, 0.46],
-      [0.36, 0.52],
-      [1.35, 0.54],
-      [1.85, 0.46],
-      [2.25, 0.34],
-      [2.42, 0.22],
-      [2.42, 0.14],
-      [0.00, 0.14],
-    ], 1.78), bodyMat);
+      [0.32, 0.50],
+      [1.30, 0.52],
+      [1.82, 0.44],
+      [2.22, 0.32],
+      [2.36, 0.22],
+      [2.36, 0.15],
+      [0.00, 0.15],
+    ], 1.62), bodyMat);
     const cabin = new THREE.Mesh(extrude([
-      [0.55, 0.50],
-      [0.88, 0.78],
-      [1.32, 0.80],
-      [1.58, 0.54],
-      [0.55, 0.50],
-    ], 1.08), glassMat);
-    const roof = new THREE.Mesh(new THREE.BoxGeometry(0.96, 0.045, 0.48), blackMat);
-    roof.position.set(0, 0.66, -0.22);
-    car.add(body, cabin, roof);
+      [0.48, 0.48],
+      [0.78, 0.68],
+      [1.22, 0.70],
+      [1.50, 0.50],
+      [0.48, 0.48],
+    ], 1.02), glassMat);
+    car.add(body, cabin);
     const rearZ = -1.16;
 
-    const skirt = new THREE.Mesh(new THREE.BoxGeometry(1.72, 0.08, 1.9), blackMat);
-    skirt.position.set(0, 0.12, 0.05);
+    const skirt = new THREE.Mesh(new THREE.BoxGeometry(1.56, 0.07, 1.85), blackMat);
+    skirt.position.set(0, 0.1, 0.02);
     car.add(skirt);
 
-    const wing = new THREE.Mesh(new THREE.BoxGeometry(1.28, 0.035, 0.18), blackMat);
-    wing.position.set(0, 0.42, -0.98);
-    const strutGeo = new THREE.BoxGeometry(0.03, 0.045, 0.03);
+    const wing = new THREE.Mesh(new THREE.BoxGeometry(1.12, 0.028, 0.14), blackMat);
+    wing.position.set(0, 0.4, -0.9);
+    const strutGeo = new THREE.BoxGeometry(0.028, 0.04, 0.028);
     const strutL = new THREE.Mesh(strutGeo, blackMat);
     const strutR = new THREE.Mesh(strutGeo, blackMat);
-    strutL.position.set(-0.32, 0.395, -0.98);
-    strutR.position.set(0.32, 0.395, -0.98);
-    const plate = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.2, 0.025), blackMat);
-    plate.position.set(0, 0.3, -1.15);
+    strutL.position.set(-0.28, 0.375, -0.9);
+    strutR.position.set(0.28, 0.375, -0.9);
+    const plate = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.16, 0.02), blackMat);
+    plate.position.set(0, 0.3, -1.145);
     car.add(wing, strutL, strutR, plate);
 
     [-1, 1].forEach((side) => {
@@ -742,11 +740,10 @@ import * as THREE from "./vendor/three.module.min.js";
       return group;
     });
 
-    const lightGeo = new THREE.CylinderGeometry(0.072, 0.072, 0.018, 24);
-    [-0.46, -0.3, 0.3, 0.46].forEach((x) => {
+    const lightGeo = new THREE.SphereGeometry(0.052, 18, 14);
+    [-0.4, -0.26, 0.26, 0.4].forEach((x) => {
       const lamp = new THREE.Mesh(lightGeo, lightMat);
-      lamp.rotation.x = Math.PI / 2;
-      lamp.position.set(x, 0.3, -1.155);
+      lamp.position.set(x, 0.3, -1.19);
       car.add(lamp);
       const glow = new THREE.PointLight(0xff2222, 0.35, 1.8, 2);
       glow.position.copy(lamp.position);
@@ -798,7 +795,7 @@ import * as THREE from "./vendor/three.module.min.js";
 
   function drawCar() {
     const steer = (keys.right || touch.right ? 1 : 0) - (keys.left || touch.left ? 1 : 0);
-    const targetYaw = Math.max(-0.35, Math.min(0.35, steer * 0.2 + Math.tanh(driftAngle) * 0.16));
+    const targetYaw = Math.max(-0.33, Math.min(0.33, steer * 0.18 + Math.tanh(driftAngle) * 0.15));
     const ease = 1 - Math.exp(-lastDt * 7);
     visualYaw += (targetYaw - visualYaw) * ease;
     const targetPitch = (keys.down ? 0.055 : 0) - ((keys.up || touch.gas) ? 0.04 : 0);
