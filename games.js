@@ -40,16 +40,16 @@ const GAMES = [
     title: "Mecha Savior",
     type: "game",
     platform: "Windows 11 (PC)",
-    version: "0.3.1",
-    versionText: "Demo v0.3.1",
-    size: "about 81 MB",
+    version: "0.6.0",
+    versionText: "Demo v0.6.0",
+    size: "about 99 MB",
     description:
       "A horror visual novel with mechs. Level up your pilots RPG-style and survive turn-based mech battles. Full game coming soon.",
     thumbnail: "assets/thumb-mecha-savior.webp",
     download: null,
     demo: {
       label: "Windows Demo",
-      url: "https://github.com/realyuikaminari/realyuikaminari.github.io/releases/download/Mecha-Savior-DEMO/Mecha-Savior-Demo.exe",
+      url: "https://github.com/realyuikaminari/realyuikaminari.github.io/releases/download/mecha_savior_demo_2/Mecha.Savior.0.6.0.exe",
     },
     note:
       "Portable .exe — no install needed. Windows SmartScreen may show “Windows protected your PC” because it’s from an indie developer. Click More info, then Run anyway.",
